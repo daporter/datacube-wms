@@ -1,0 +1,7 @@
+FROM opendatacube/datacube-core:latest
+
+RUN apt-get update && apt-get install -y wget netcat && wget https://raw.githubusercontent.com/eficode/wait-for/master/wait-for
+RUN chmod +x ./wait-for
+
+RUN mkdir -p /opt/populate
+COPY populate /opt/populate
