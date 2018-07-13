@@ -37,10 +37,10 @@ def test_caps(cube, release_cube_dummy, mocker):
         assert boundingbox_3857.get("miny") == "-2466576.4072137373"
         assert boundingbox_3857.get("maxy") == "-2348379.93955229"
         boundingbox_4326 = query_layers[0].find("./{http://www.opengis.net/wms}BoundingBox[@CRS='EPSG:4326']")
-        assert boundingbox_4326.get("minx") == "117.38198877598595"
-        assert boundingbox_4326.get("maxx") == "118.45187549676838"
-        assert boundingbox_4326.get("miny") == "-21.625127734743167"
-        assert boundingbox_4326.get("maxy") == "-20.63475508625344"
+        assert boundingbox_4326.get("minx") == "-21.625127734743167"
+        assert boundingbox_4326.get("maxx") == "-20.63475508625344"
+        assert boundingbox_4326.get("miny") == "117.38198877598595"
+        assert boundingbox_4326.get("maxy") == "118.45187549676838"
         time = query_layers[0].find("./{http://www.opengis.net/wms}Dimension[@name='time']")
         assert time.get("units") == "ISO8601"
         assert "2015-01-01" in time.text

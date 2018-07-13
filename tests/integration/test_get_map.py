@@ -109,7 +109,7 @@ zoomedin_testdata = [
         "height": "256",
         "bbox": "13071343.332991421,-2387281.2674026266,13110479.09147343,-2348145.5089206137"},
     "data/get_map_zoomedin/zoomedin_5.png"),
-    (5,
+    (6,
     {"srs": "EPSG:3857",
         "styles": "infrared_green",
         "tiled": True,
@@ -121,7 +121,7 @@ zoomedin_testdata = [
         "height": "257",
         "bbox": "13071343.332991421,-2387281.2674026266,13110479.09147343,-2348145.5089206137"},
     "data/get_map_zoomedin/zoomedin_6.png"),
-    (5,
+    (7,
     {"srs": "EPSG:3577",
         "styles": "infrared_green",
         "tiled": True,
@@ -132,12 +132,20 @@ zoomedin_testdata = [
         "width": "1017",
         "height": "257",
         "bbox": "-1503093.67,-2336982.04,-1471065.71,-2296511.45"},
+    "data/get_map_zoomedin/zoomedin_7.png"),
+    (8,
+    {"srs": "EPSG:4326",
+        "styles": "infrared_green",
+        "tiled": True,
+        "feature_count": 101,
+        "version": "1.1.1",
+        "layers": "ls8_nbart_geomedian_annual",
+        "format": "image/png",
+        "width": "1017",
+        "height": "257",
+        "bbox": "-20.9614396,117.421875,-20.6327842,117.7734375"},
     "data/get_map_zoomedin/zoomedin_7.png")
 ]
-
-# -20.9614396,117.421875,-20.6327842,117.7734375
-# -20.9614396%2C117.421875%2C-20.6327842%2C117.7734375
-# 117.421875%2C-20.9614396%2C117.7734375%2C-20.6327842
 
 @pytest.mark.parametrize("id, test_args, expect_png", zoomedin_testdata)
 def test_map_zoomedin(cube, release_cube_dummy, mocker, id, test_args, expect_png):
