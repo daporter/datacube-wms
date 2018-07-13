@@ -3,8 +3,9 @@
 pushd docker
 POPULATE=$1 docker-compose up -d
 popd
+cp "docker/config/${2}" ../../datacube_wms/wms_cfg_local.py
 sleep 30
-pytest --db_hostname="localhost" --db_port=54321
+pytest -s --db_hostname="localhost" --db_port=54321
 pushd docker
 POPULATE=$1 docker-compose down
 popd

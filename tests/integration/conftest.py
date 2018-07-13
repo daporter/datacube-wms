@@ -4,6 +4,7 @@ import datacube
 def pytest_addoption(parser):
     parser.addoption("--db_hostname", action="store")
     parser.addoption("--db_port", action="store")
+    parser.addoption("--cfg_location", action="store")
 
 
 @pytest.fixture
@@ -30,4 +31,7 @@ def cube(db_hostname, db_port):
 
 @pytest.fixture
 def release_cube_dummy():
-    pass
+    def release(arg):
+        pass
+    return release
+

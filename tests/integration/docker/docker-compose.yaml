@@ -11,7 +11,7 @@ services:
     build:
       context: .
       dockerfile: core-compose-Dockerfile
-    command: [ "./wait-for", "db:5432", "--", "/opt/populate/${POPULATE}"]
+    command: [ "./wait-for", "db:5432", "--", "/opt/populate/${POPULATE}", "${POPULATE_CONFIG}"]
     depends_on:
       - "db"
     environment:
