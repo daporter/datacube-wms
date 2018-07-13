@@ -1,5 +1,6 @@
 import datacube
 import pytest
+import datetime
 
 import xml.etree.ElementTree as et
 
@@ -40,3 +41,6 @@ def test_caps(cube, release_cube_dummy, mocker):
         assert boundingbox_4326.get("maxx") == "118.45187549676838"
         assert boundingbox_4326.get("miny") == "-21.625127734743167"
         assert boundingbox_4326.get("maxy") == "-20.63475508625344"
+        time = query_layers[0].find("./{http://www.opengis.net/wms}Dimension[@name='time']")
+        assert time.get("units") == "ISO8601"
+        assert "2015-01-01" in time.text
