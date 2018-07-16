@@ -175,7 +175,7 @@ layer_cfg = [
                 "pq_manual_merge": False,
                 # Bands to always fetch from the Datacube, even if it is not used by the active style.
                 # Useful for when a particular band is always needed for the extent_mask_func,
-                "always_fetch_bands": [ ],
+                "always_fetch_bands": [],
                 # Apply corrections for solar angle, for "Level 1" products.
                 # (Defaults to false - should not be used for NBAR/NBAR-T or other Analysis Ready products
                 "apply_solar_corrections": False,
@@ -241,7 +241,8 @@ layer_cfg = [
                     {
                         "name": "cloud_and_shadow_masked_rgb",
                         "title": "Simple RGB with cloud and cloud shadow masking",
-                        "abstract": "Simple true-colour image, using the red, green and blue bands, with cloud and cloud shadow masking",
+                        "abstract": "Simple true-colour image, using the red, green and blue bands, with cloud and "
+                                    "cloud shadow masking",
                         "components": {
                             "red": {
                                 "red": 1.0
@@ -448,7 +449,8 @@ layer_cfg = [
                     {
                         "name": "ndvi",
                         "title": "NDVI",
-                        "abstract": "Normalised Difference Vegetation Index - a derived index that correlates well with the existence of vegetation",
+                        "abstract": "Normalised Difference Vegetation Index - a derived index that correlates well "
+                                    "with the existence of vegetation",
                         "heat_mapped": True,
                         "index_function": lambda data: (data["nir"] - data["red"]) / (data["nir"] + data["red"]),
                         "needed_bands": ["red", "nir"],
@@ -458,7 +460,8 @@ layer_cfg = [
                     {
                         "name": "ndvi_cloudmask",
                         "title": "NDVI with cloud masking",
-                        "abstract": "Normalised Difference Vegetation Index (with cloud masking) - a derived index that correlates well with the existence of vegetation",
+                        "abstract": "Normalised Difference Vegetation Index (with cloud masking) - a derived index "
+                                    "that correlates well with the existence of vegetation",
                         "heat_mapped": True,
                         "index_function": lambda data: (data["nir"] - data["red"]) / (data["nir"] + data["red"]),
                         "needed_bands": ["red", "nir"],
@@ -476,7 +479,8 @@ layer_cfg = [
                     {
                         "name": "ndwi",
                         "title": "NDWI",
-                        "abstract": "Normalised Difference Water Index - a derived index that correlates well with the existence of water",
+                        "abstract": "Normalised Difference Water Index - a derived index that correlates well with "
+                                    "the existence of water",
                         "heat_mapped": True,
                         "index_function": lambda data: (data["green"] - data["nir"]) / (data["nir"] + data["green"]),
                         "needed_bands": ["green", "nir"],
@@ -485,7 +489,8 @@ layer_cfg = [
                     {
                         "name": "ndwi_cloudmask",
                         "title": "NDWI with cloud and cloud-shadow masking",
-                        "abstract": "Normalised Difference Water Index (with cloud and cloud-shadow masking) - a derived index that correlates well with the existence of water",
+                        "abstract": "Normalised Difference Water Index (with cloud and cloud-shadow masking) - a "
+                                    "derived index that correlates well with the existence of water",
                         "heat_mapped": True,
                         "index_function": lambda data: (data["green"] - data["nir"]) / (data["nir"] + data["green"]),
                         "needed_bands": ["green", "nir"],
@@ -502,7 +507,8 @@ layer_cfg = [
                     {
                         "name": "ndbi",
                         "title": "NDBI",
-                        "abstract": "Normalised Difference Buildup Index - a derived index that correlates with the existence of urbanisation",
+                        "abstract": "Normalised Difference Buildup Index - a derived index that correlates with the "
+                                    "existence of urbanisation",
                         "heat_mapped": True,
                         "index_function": lambda data: (data["swir2"] - data["nir"]) / (data["swir2"] + data["nir"]),
                         "needed_bands": ["swir2", "nir"],
@@ -713,7 +719,7 @@ layer_cfg = [
                 "pq_manual_merge": True,
                 # Bands to always fetch from the Datacube, even if it is not used by the active style.
                 # Useful for when a particular band is always needed for the extent_mask_func,
-                "always_fetch_bands": [ "quality", ],
+                "always_fetch_bands": ["quality", ],
                 # Apply corrections for solar angle, for "Level 1" products.
                 "apply_solar_corrections": True,
 
@@ -754,7 +760,7 @@ layer_cfg = [
                         },
                         # The raw band value range to be compressed to an 8 bit range for the output image tiles.
                         # Band values outside this range are clipped to 0 or 255 as appropriate.
-                        "scale_range": [ 9500, 22000 ],
+                        "scale_range": [9500, 22000],
                     },
                     {
                         "name": "cloud_masked_rgb",
@@ -779,7 +785,7 @@ layer_cfg = [
                                 },
                             },
                         ],
-                        "scale_range": [ 9500, 22000 ],
+                        "scale_range": [9500, 22000],
                     },
                     {
                         "name": "extended_rgb",
@@ -797,7 +803,7 @@ layer_cfg = [
                                 "coastal_aerosol": 0.4
                             }
                         },
-                        "scale_range": [ 9500, 22000 ],
+                        "scale_range": [9500, 22000],
                     },
                     {
                         "name": "wideband",
@@ -820,7 +826,7 @@ layer_cfg = [
                                 "coastal_aerosol": 0.255,
                             }
                         },
-                        "scale_range": [ 9500, 22000 ],
+                        "scale_range": [9500, 22000],
                     },
                     {
                         "name": "infra_red",
@@ -837,7 +843,7 @@ layer_cfg = [
                                 "nir": 1.0
                             }
                         },
-                        "scale_range": [ 9500, 22000 ],
+                        "scale_range": [9500, 22000],
                     },
                     {
                         "name": "coastal_aerosol",
@@ -854,7 +860,7 @@ layer_cfg = [
                                 "coastal_aerosol": 1.0
                             }
                         },
-                        "scale_range": [ 9500, 22000 ],
+                        "scale_range": [9500, 22000],
                     },
                     {
                         "name": "blue",
@@ -871,7 +877,7 @@ layer_cfg = [
                                 "blue": 1.0
                             }
                         },
-                        "scale_range": [ 9500, 22000 ],
+                        "scale_range": [9500, 22000],
                     },
                     {
                         "name": "green",
@@ -888,7 +894,7 @@ layer_cfg = [
                                 "green": 1.0
                             }
                         },
-                        "scale_range": [ 9500, 22000 ],
+                        "scale_range": [9500, 22000],
                     },
                     {
                         "name": "red",
@@ -905,7 +911,7 @@ layer_cfg = [
                                 "red": 1.0
                             }
                         },
-                        "scale_range": [ 9500, 22000 ],
+                        "scale_range": [9500, 22000],
                     },
                     {
                         "name": "nir",
@@ -922,7 +928,7 @@ layer_cfg = [
                                 "nir": 1.0
                             }
                         },
-                        "scale_range": [ 9500, 22000 ],
+                        "scale_range": [9500, 22000],
                     },
                     {
                         "name": "swir1",
@@ -939,7 +945,7 @@ layer_cfg = [
                                 "swir1": 1.0
                             }
                         },
-                        "scale_range": [ 9500, 22000 ],
+                        "scale_range": [9500, 22000],
                     },
                     {
                         "name": "swir2",
@@ -956,7 +962,7 @@ layer_cfg = [
                                 "swir2": 1.0
                             }
                         },
-                        "scale_range": [ 9500, 22000 ],
+                        "scale_range": [9500, 22000],
                     },
                     #
                     # Examples of non-linear heat-mapped styles.
@@ -1070,7 +1076,7 @@ layer_cfg = [
                                 "blue": 1.0
                             }
                         },
-                        "scale_range": [ 9500, 22000 ],
+                        "scale_range": [9500, 22000],
                     },
                     {
                         "name": "rgb_ndvi_cloudmask",
@@ -1100,7 +1106,7 @@ layer_cfg = [
                                 },
                             },
                         ],
-                        "scale_range": [ 9500, 22000 ],
+                        "scale_range": [9500, 22000],
                     }
                 ],
                 # Default style (if request does not specify style)
@@ -1238,5 +1244,3 @@ layer_cfg = [
         ],
     },
 ]
-
-
