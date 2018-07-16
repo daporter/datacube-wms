@@ -64,6 +64,9 @@ target/
 # Editor temp files
 .*.swp
 
+# OSX specific files
+.DS_Store
+
 # PyCharm project files
 .idea/
 

@@ -7,45 +7,54 @@ import xml.etree.ElementTree as et
 from datacube_wms.data import get_map
 import flask
 
+zoomedout_testdata = [
+    (1,
+    {"srs": "EPSG:3857",
+        "styles": "",
+        "tiled": True,
+        "feature_count": 101,
+        "version": "1.1.1",
+        "layers": "ls8_nbart_geomedian_annual",
+        "format": "image/png",
+        "width": "256",
+        "height": "256",
+        "bbox": "13149614.84995544,-2504688.542848654,13306157.883883484,-2348145.5089206137"},
+    "data/get_map_zoomedout/zoomedout_1.png"),
+    (2,
+    {"srs": "EPSG:3857",
+        "styles": "",
+        "tiled": True,
+        "feature_count": 101,
+        "version": "1.1.1",
+        "layers": "ls8_nbart_geomedian_annual",
+        "format": "image/png",
+        "width": "256",
+        "height": "256",
+        "bbox": "12993071.8160274,-2504688.542848654,13149614.84995544,-2348145.5089206137"},
+    "data/get_map_zoomedin/zoomedin_2.png"),
+    (3,
+    {"srs": "EPSG:3857",
+        "styles": "",
+        "tiled": True,
+        "feature_count": 101,
+        "version": "1.1.1",
+        "layers": "ls8_nbart_geomedian_annual",
+        "format": "image/png",
+        "width": "1015",
+        "height": "786",
+        "bbox": "12523442.714243278,-2504688.542848654,13149614.84995544,-1878516.4071364924"},
+    "data/get_map_zoomedin/zoomedin_3.png")
+]
 
-# def test_map_zoomedout(cube, release_cube_dummy, mocker):
-#     mocker.patch('datacube_wms.data.get_cube', cube)
-#     mocker.patch('datacube_wms.wms_layers.get_cube', cube)
-#     mocker.patch('datacube_wms.data.release_cube', release_cube_dummy)
-#     mocker.patch('datacube_wms.wms_layers.release_cube', release_cube_dummy)
+@pytest.mark.parametrize("id, test_args, expect_png", zoomedout_testdata)
+def test_map_zoomedout(cube, release_cube_dummy, mocker, id, test_args, expect_png):
+    app = flask.Flask("test", root_path="/Users/robbie/dev/datacube-wms/datacube_wms")
+    with app.test_request_context('/?GetMap'):
+        args = {}
+        resp = get_map(test_args)
+        with open(expect_png) as png:
+            resp == png
 
-#     app = flask.Flask("test", root_path="/Users/robbie/dev/datacube-wms/datacube_wms")
-#     with app.test_request_context('/?GetMap'):
-#         args = {}
-#         resp = get_map(None)
-#         root = et.fromstring(resp[0])
-
-#         query_layers = root.findall(".//{http://www.opengis.net/wms}Layer[@queryable]")
-#         assert len(query_layers) == 1
-#         names = [t.find("{http://www.opengis.net/wms}Name").text for t in query_layers]
-#         assert "ls8_nbart_geomedian_annual" in names
-#         assert query_layers[0].find("./{http://www.opengis.net/wms}EX_GeographicBoundingBox/{http://www.opengis.net/wms}westBoundLongitude").text == "117.38198877598595"
-#         assert query_layers[0].find("./{http://www.opengis.net/wms}EX_GeographicBoundingBox/{http://www.opengis.net/wms}eastBoundLongitude").text == "118.45187549676838"
-#         assert query_layers[0].find("./{http://www.opengis.net/wms}EX_GeographicBoundingBox/{http://www.opengis.net/wms}southBoundLatitude").text == "-21.625127734743167"
-#         assert query_layers[0].find("./{http://www.opengis.net/wms}EX_GeographicBoundingBox/{http://www.opengis.net/wms}northBoundLatitude").text == "-20.63475508625344"
-#         boundingbox_3577 = query_layers[0].find("./{http://www.opengis.net/wms}BoundingBox[@CRS='EPSG:3577']")
-#         assert boundingbox_3577.get("minx") == "-1500000.0"
-#         assert boundingbox_3577.get("maxx") == "-1400000.0"
-#         assert boundingbox_3577.get("miny") == "-2400000.0"
-#         assert boundingbox_3577.get("maxy") == "-2300000.0"
-#         boundingbox_3857 = query_layers[0].find("./{http://www.opengis.net/wms}BoundingBox[@CRS='EPSG:3857']")
-#         assert boundingbox_3857.get("minx") == "13066903.218844512"
-#         assert boundingbox_3857.get("maxx") == "13186002.4638085"
-#         assert boundingbox_3857.get("miny") == "-2466576.4072137373"
-#         assert boundingbox_3857.get("maxy") == "-2348379.93955229"
-#         boundingbox_4326 = query_layers[0].find("./{http://www.opengis.net/wms}BoundingBox[@CRS='EPSG:4326']")
-#         assert boundingbox_4326.get("minx") == "117.38198877598595"
-#         assert boundingbox_4326.get("maxx") == "118.45187549676838"
-#         assert boundingbox_4326.get("miny") == "-21.625127734743167"
-#         assert boundingbox_4326.get("maxy") == "-20.63475508625344"
-#         time = query_layers[0].find("./{http://www.opengis.net/wms}Dimension[@name='time']")
-#         assert time.get("units") == "ISO8601"
-#         assert "2015-01-01" in time.text
 
 
 zoomedin_testdata = [
