@@ -5,6 +5,7 @@ from datacube_wms.ogc_utils import resp_headers
 
 
 class OGCException(Exception):
+    # pylint: disable=dangerous-default-value
     INVALID_FORMAT = "InvalidFormat"
     CURRENT_UPDATE_SEQUENCE = "CurrentUpdateSequence"
     INVALID_UPDATE_SEQUENCE = "InvalidUpdateSequence"
@@ -13,6 +14,7 @@ class OGCException(Exception):
     schema_url = None
 
     def __init__(self, msg, code=None, locator=None, http_response=400):
+        super().__init__()
         self.http_response = http_response
         self.errors = []
         self.add_error(msg, code, locator)
@@ -32,7 +34,7 @@ class OGCException(Exception):
                                 schema_url=self.schema_url),
                 self.http_response,
                 resp_headers({"Content-Type": "application/xml"})
-                )
+               )
 
 
 class WMSException(OGCException):

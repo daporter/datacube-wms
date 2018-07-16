@@ -1,4 +1,5 @@
 # Static config for the wms metadata.
+# pylint: skip-file
 
 response_cfg = {
     "Access-Control-Allow-Origin": "*",  # CORS header

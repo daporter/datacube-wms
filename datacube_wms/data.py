@@ -107,6 +107,7 @@ class DataStacker(object):
                 return self.filter_datasets_by_extent(datasets)
 
     def filter_datasets_by_extent(self, datasets):
+        # pylint: disable=too-many-branches
         date_index = {}
         for dataset in iter(datasets):
             # Build a date-index of intersecting datasets
@@ -202,6 +203,7 @@ class DataStacker(object):
 
     def manual_data_stack(self, datasets, measurements,
                           mask, skip_corrections, **kwargs):
+        # pylint: disable=too-many-branches,too-many-locals
         # manual merge
         merged = None
         if mask:
@@ -239,6 +241,7 @@ class DataStacker(object):
 
 
 def get_map(args):
+    # pylint: disable=too-many-locals,too-many-nested-blocks,too-many-branches
     # Parse GET parameters
     params = GetMapParameters(args)
 
@@ -251,6 +254,7 @@ def get_map(args):
     dc = get_cube()
     try:
         datasets = stacker.datasets(dc.index)
+        # pylint: disable=line-too-long
         if not datasets:
             body = _write_empty(params.geobox)
         elif params.zf < params.product.min_zoom or (params.product.max_datasets_wms > 0 and len(datasets) > params.product.max_datasets_wms):
@@ -392,7 +396,7 @@ def get_s3_browser_uris(datasets):
     # convert to browsable link
     def convert(uri):
         regex = re.compile(
-            "s3:\/\/(?P<bucket>[a-zA-Z0-9_\-]+)\/(?P<prefix>[\S]+)ARD-METADATA.yaml")
+            r"s3:\/\/(?P<bucket>[a-zA-Z0-9_\-]+)\/(?P<prefix>[\S]+)ARD-METADATA.yaml")
         uri_format = "http://{bucket}.s3-website-ap-southeast-2.amazonaws.com/?prefix={prefix}"
         result = regex.match(uri)
         if result is not None:
@@ -408,6 +412,7 @@ def get_s3_browser_uris(datasets):
 
 
 def feature_info(args):
+    # pylint: disable=too-many-locals,too-many-nested-blocks,too-many-branches,too-many-statements
     # Parse GET parameters
     params = GetFeatureInfoParameters(args)
 

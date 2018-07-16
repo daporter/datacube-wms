@@ -17,6 +17,7 @@ from datacube_wms.wms_layers import get_layers, get_service_cfg
 
 
 class WCS1GetCoverageRequest(object):
+    # pylint: disable=too-many-instance-attributes,too-many-branches,too-many-statements
     def __init__(self, args):
         self.args = args
         layers = get_layers()
@@ -263,8 +264,8 @@ class WCS1GetCoverageRequest(object):
         self.affine = Affine.translation(
             self.minx,
             self.miny) * Affine.scale(
-            (self.maxx - self.minx) / self.width,
-            (self.maxy - self.miny) / self.height)
+                (self.maxx - self.minx) / self.width,
+                (self.maxy - self.miny) / self.height)
         self.geobox = geometry.GeoBox(
             self.width,
             self.height,
@@ -273,6 +274,7 @@ class WCS1GetCoverageRequest(object):
 
 
 def get_coverage_data(req):
+    # pylint: disable=too-many-locals
     dc = get_cube()
     datasets = []
     for t in req.times:
@@ -289,6 +291,7 @@ def get_coverage_data(req):
         datasets.extend(t_datasets)
     if not datasets:
         # TODO: Return an empty coverage file with full metadata?
+        # pylint: disable=protected-access
         extents = dc.load(
             dask_chunks={},
             product=req.product,
@@ -320,7 +323,7 @@ def get_coverage_data(req):
                 band: ((yname, xname),
                        numpy.full((len(yvals), len(xvals)),
                                   req.product.nodata_dict[band])
-                       )
+                      )
                 for band in req.bands
             }
         else:
@@ -328,7 +331,7 @@ def get_coverage_data(req):
                 band: ((xname, yname),
                        numpy.full((len(xvals), len(yvals)),
                                   req.product.nodata_dict[band])
-                       )
+                      )
                 for band in req.bands
             }
         data = xarray.Dataset(
@@ -343,6 +346,7 @@ def get_coverage_data(req):
 
     if req.product.max_datasets_wcs > 0 and len(
             datasets) > req.product.max_datasets_wcs:
+    # pylint: disable=line-too-long
         raise WCS1Exception(
             "This request processes too much data to be served in a reasonable amount of time. Please reduce the bounds of your request and try again. (max: %d, this request requires: %d)" %
             (req.product.max_datasets_wcs, len(datasets)))
@@ -388,18 +392,18 @@ def get_tiff(req, data):
     yname = svc.published_CRSs[req.request_crsid]["vertical_coord"]
     with MemoryFile() as memfile:
         with memfile.open(
-                driver="GTiff",
-                width=data.dims[xname],
-                height=data.dims[yname],
-                count=len(data.data_vars),
-                transform=_get_transform_from_xr(xname, yname, data),
-                crs=req.response_crsid,
-                dtype=dtype) as dst:
+            driver="GTiff",
+            width=data.dims[xname],
+            height=data.dims[yname],
+            count=len(data.data_vars),
+            transform=_get_transform_from_xr(xname, yname, data),
+            crs=req.response_crsid,
+            dtype=dtype) as dst:
             for idx, band in enumerate(data.data_vars, start=1):
                 dst.write(data[band].values, idx)
             dst.set_nodatavals(
                 [req.product.nodata_dict[band]
-                    if band in req.product.nodata_dict else 0 for band in data.data_vars]
+                 if band in req.product.nodata_dict else 0 for band in data.data_vars]
             )
         return memfile.read()
 
@@ -430,6 +434,7 @@ def _get_transform_from_xr(xname, yname, dataset):
 
     return geotransform
 
+# pylint: disable=invalid-name
 
 wcs_formats = {
     "GeoTIFF": {

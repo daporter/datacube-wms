@@ -33,7 +33,7 @@ class StyleDefBase(object):
                 data = data.where(mask_data)
         return data
 
-    def transform_data(self, data, extent_mask, *masks):
+    def transform_data(self, data, pq_data, extent_mask):
         pass
 
 
@@ -197,6 +197,7 @@ class HybridStyleDef(HeatMappedStyleDef, LinearStyleDef):
         self.component_ratio = style_cfg["component_ratio"]
 
     def transform_data(self, data, pq_data, extent_mask):
+        # pylint: disable=too-many-locals
         hm_index_data = self._index_function(data)
         hm_mask = hm_index_data != float("nan")
         data = self.apply_masks(data, pq_data)
@@ -235,7 +236,7 @@ class HybridStyleDef(HeatMappedStyleDef, LinearStyleDef):
         imgdata = imgdata.astype("uint8")
         return imgdata
 
-
+# pylint: disable=invalid-name
 def StyleDef(product, cfg):
     if cfg.get("component_ratio", False):
         return HybridStyleDef(product, cfg)

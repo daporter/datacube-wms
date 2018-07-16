@@ -1,5 +1,5 @@
 dist: trusty
-sudo: false  # Use the new travis docker based infrastructure
+sudo: true  # Use the new travis docker based infrastructure
 
 git:
   # We need a deeper depth for 'git descibe' to ensure
@@ -9,8 +9,6 @@ git:
 language: python
 python:
 # We don't use the travis python, but we will use it for the build matrix
-  - "2.7"
-  - "3.5"
   - "3.6"
 
 cache:
@@ -23,6 +21,7 @@ addons:
   services:
     - postgresql
     - redis-server
+    - docker
 
 before_install:
   # Create a database for the integration tests.

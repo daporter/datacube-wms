@@ -1,3 +1,5 @@
+#pylint: disable=invalid-name
+
 from datacube_wms.product_ranges import update_all_ranges
 from datacube_wms.cube_pool import get_cube, release_cube
 

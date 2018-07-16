@@ -31,6 +31,7 @@ def accum_max(a, b):
 
 
 class ProductLayerDef(object):
+    # pylint: disable=too-many-instance-attributes,too-many-statements
     def __init__(self, product_cfg, platform_def, dc):
         self.platform = platform_def
         self.name = product_cfg["name"]
@@ -91,6 +92,7 @@ class ProductLayerDef(object):
         svc_cfg = get_service_cfg()
         if svc_cfg.wcs:
             try:
+                # pylint: disable=invalid-name
                 self.native_CRS = self.product.definition["storage"]["crs"]
                 if self.native_CRS not in svc_cfg.published_CRSs:
                     raise Exception(
@@ -118,9 +120,10 @@ class ProductLayerDef(object):
 
     @property
     def bboxes(self):
+        # pylint: disable=line-too-long
         return {
-            crs_id: {"right": bbox["bottom"], "left": bbox["top"], "top": bbox["left"], "bottom": bbox["right"]} if service_cfg["published_CRSs"][crs_id].get("vertical_coord_first")
-            else {"right": bbox["right"], "left": bbox["left"], "top": bbox["top"], "bottom": bbox["bottom"]}
+            crs_id: {"right": bbox["bottom"], "left": bbox["top"], "top": bbox["left"], "bottom": bbox["right"]} if get_service_cfg()["published_CRSs"][crs_id].get("vertical_coord_first")
+                    else {"right": bbox["right"], "left": bbox["left"], "top": bbox["top"], "bottom": bbox["bottom"]}
             for crs_id, bbox in self.ranges["bboxes"].items()
         }
 
@@ -177,6 +180,7 @@ def get_layers(refresh=False):
 
 
 class ServiceCfg(object):
+    # pylint: disable=too-many-instance-attributes
     _instance = None
     initialised = False
 
@@ -185,20 +189,21 @@ class ServiceCfg(object):
             cls._instance = super(ServiceCfg, cls).__new__(cls)
         return cls._instance
 
-    def __init__(self, service_cfg, refresh=False):
+    def __init__(self, srv_cfg, refresh=False):
+        # pylint: disable=line-too-long,invalid-name,too-many-branches
         if not self.initialised or refresh:
             self.initialised = True
 
-            self.wms = service_cfg.get("wms", True)
-            self.wcs = service_cfg.get("wcs", False)
+            self.wms = srv_cfg.get("wms", True)
+            self.wcs = srv_cfg.get("wcs", False)
 
-            self.title = service_cfg["title"]
-            self.url = service_cfg["url"]
+            self.title = srv_cfg["title"]
+            self.url = srv_cfg["url"]
             if not self.url.startswith("http"):
                 raise Exception(
-                    "URL in service_cfg does not start with http or https.")
+                    "URL in srv_cfg does not start with http or https.")
             self.published_CRSs = {}
-            for crs_str, crsdef in service_cfg["published_CRSs"].items():
+            for crs_str, crsdef in srv_cfg["published_CRSs"].items():
                 self.published_CRSs[crs_str] = {
                     "geographic": crsdef["geographic"],
                     "horizontal_coord": crsdef.get("horizontal_coord", "longitude"),
@@ -214,7 +219,7 @@ class ServiceCfg(object):
                             "Published CRS {} is geographic but has a vertical coordinate that is not 'latitude'".format(crs_str))
 
             if self.wcs:
-                self.default_geographic_CRS = service_cfg["default_geographic_CRS"]
+                self.default_geographic_CRS = srv_cfg["default_geographic_CRS"]
                 if self.default_geographic_CRS not in self.published_CRSs:
                     raise Exception(
                         "Configured default geographic CRS not listed in published CRSs.")
@@ -223,7 +228,7 @@ class ServiceCfg(object):
                         "Configured default geographic CRS not listed in published CRSs as geographic.")
                 self.default_geographic_CRS_def = self.published_CRSs[self.default_geographic_CRS]
                 self.wcs_formats = {}
-                for fmt_name, fmt in service_cfg["wcs_formats"].items():
+                for fmt_name, fmt in srv_cfg["wcs_formats"].items():
                     self.wcs_formats[fmt_name] = {
                         "mime": fmt["mime"],
                         "extension": fmt["extension"],
@@ -239,7 +244,7 @@ class ServiceCfg(object):
                     raise Exception(
                         "Must configure at least one wcs format to support WCS.")
 
-                self.native_wcs_format = service_cfg["native_wcs_format"]
+                self.native_wcs_format = srv_cfg["native_wcs_format"]
                 if self.native_wcs_format not in self.wcs_formats:
                     raise Exception(
                         "Configured native WCS format not a supported format.")
@@ -251,14 +256,14 @@ class ServiceCfg(object):
 
             # WMS specific config
             self.layer_limit = 1
-            self.max_width = service_cfg.get("max_width", 256)
-            self.max_height = service_cfg.get("max_height", 256)
+            self.max_width = srv_cfg.get("max_width", 256)
+            self.max_height = srv_cfg.get("max_height", 256)
 
-            self.abstract = service_cfg.get("abstract")
-            self.keywords = service_cfg.get("keywords", [])
-            self.contact_info = service_cfg.get("contact_info", {})
-            self.fees = service_cfg.get("fees", "")
-            self.access_constraints = service_cfg.get("access_constraints", "")
+            self.abstract = srv_cfg.get("abstract")
+            self.keywords = srv_cfg.get("keywords", [])
+            self.contact_info = srv_cfg.get("contact_info", {})
+            self.fees = srv_cfg.get("fees", "")
+            self.access_constraints = srv_cfg.get("access_constraints", "")
 
     def __getitem__(self, name):
         return getattr(self, name)

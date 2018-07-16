@@ -69,8 +69,7 @@ def get_capabilities(args):
         200,
         resp_headers({
             "Content-Type": "application/xml",
-            "Cache-Control": "no-cache",
-            "Cache-Control": "max-age=0"
+            "Cache-Control": "max-age=0, no-cache"
         })
     )
 
@@ -104,8 +103,7 @@ def desc_coverages(args):
         200,
         resp_headers({
             "Content-Type": "application/xml",
-            "Cache-Control": "no-cache",
-            "Cache-Control": "max-age=0"
+            "Cache-Control": "max-age=0, no-cache"
         })
     )
 

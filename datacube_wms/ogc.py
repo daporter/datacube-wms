@@ -10,7 +10,7 @@ from datacube_wms.ogc_exceptions import OGCException, WCS1Exception, WMSExceptio
 
 from datacube_wms.wms_layers import get_service_cfg
 
-
+# pylint: disable=invalid-name
 app = Flask(__name__.split('.')[0])
 
 
@@ -28,6 +28,7 @@ def lower_get_args():
 
 @app.route('/')
 def ogc_impl():
+    # pylint: disable=broad-except
     nocase_args = lower_get_args()
     service = nocase_args.get("service", "").upper()
     svc_cfg = get_service_cfg()

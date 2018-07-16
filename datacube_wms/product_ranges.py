@@ -28,6 +28,7 @@ def accum_max(a, b):
 
 
 def determine_product_ranges(dc, product_name, time_offset, extractor):
+    #pylint: disable=too-many-locals, too-many-branches, too-many-statements
     start = datetime.now()
     product = dc.index.products.get_by_name(product_name)
     print("Product: ", product_name)
@@ -115,6 +116,7 @@ def determine_product_ranges(dc, product_name, time_offset, extractor):
                 if not cvx_ext.is_valid:
                     print("WARNING: Extent for CRS", crsid, "is not valid")
                 union = extents[crsid].union(cvx_ext)
+                # pylint: disable=protected-access
                 if union._geom is not None:
                     extents[crsid] = union
                 else:
@@ -133,6 +135,7 @@ def determine_product_ranges(dc, product_name, time_offset, extractor):
     r["time_set"] = time_set
     r["bboxes"] = {crsid: extents[crsid].boundingbox for crsid in crsids}
     if extractor is not None:
+        # pylint: disable=consider-iterating-dictionary
         for path in sub_r.keys():
             sub_r[path]["times"] = sorted(sub_r[path]["time_set"])
             sub_r[path]["bboxes"] = {
@@ -155,6 +158,7 @@ def determine_ranges(dc):
 
 
 def get_sqlconn(dc):
+    # pylint: disable=protected-access
     # TODO: Is this the really the best way to obtain an SQL connection?
     return dc.index._db._engine.connect()
 
@@ -194,10 +198,10 @@ def rng_update(conn, rng):
                      Json([t.strftime("%Y-%m-%d") for t in rng["times"]]),
                      Json({crsid: {"top": bbox.top, "bottom": bbox.bottom, "left": bbox.left, "right": bbox.right}
                            for crsid, bbox in rng["bboxes"].items()
-                           }),
+                          }),
                      rng["product_id"],
                      rng["sub_id"],
-                     )
+                    )
 
     else:
         conn.execute("""
@@ -219,9 +223,9 @@ def rng_update(conn, rng):
                      Json([t.strftime("%Y-%m-%d") for t in rng["times"]]),
                      Json({crsid: {"top": bbox.top, "bottom": bbox.bottom, "left": bbox.left, "right": bbox.right}
                            for crsid, bbox in rng["bboxes"].items()
-                           }),
+                          }),
                      rng["product_id"],
-                     )
+                    )
 
 
 def rng_insert(conn, rng):
@@ -243,8 +247,8 @@ def rng_insert(conn, rng):
                      Json([t.strftime("%Y-%m-%d") for t in rng["times"]]),
                      Json({crsid: {"top": bbox.top, "bottom": bbox.bottom, "left": bbox.left, "right": bbox.right}
                            for crsid, bbox in rng["bboxes"].items()
-                           })
-                     )
+                          })
+                    )
     else:
         conn.execute("""
                 INSERT into wms.product_ranges
@@ -262,11 +266,12 @@ def rng_insert(conn, rng):
                      Json([t.strftime("%Y-%m-%d") for t in rng["times"]]),
                      Json({crsid: {"top": bbox.top, "bottom": bbox.bottom, "left": bbox.left, "right": bbox.right}
                            for crsid, bbox in rng["bboxes"].items()
-                           })
-                     )
+                          })
+                    )
 
 
 def ranges_equal(r1, rdb):
+    # pylint: disable=too-many-branches
     if r1["product_id"] != rdb["product_id"]:
         return False
     if r1.get("sub_id") != rdb.get("sub_product_id"):
@@ -300,8 +305,8 @@ def ranges_equal(r1, rdb):
 
 
 def update_range(dc, product):
-    def find(list, key, value):
-        for d in list:
+    def find(find_list, key, value):
+        for d in find_list:
             if d[key] == value:
                 return d
         return None

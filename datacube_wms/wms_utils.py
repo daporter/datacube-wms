@@ -40,6 +40,7 @@ def int_trim(val, minval, maxval):
 
 
 def zoom_factor(args, crs):
+    # pylint: disable=too-many-locals
     # Determine the geographic "zoom factor" for the request.
     # (Larger zoom factor means deeper zoom.  Smaller zoom factor means larger area.)
     # Extract request bbox and crs
@@ -115,7 +116,7 @@ def get_product_from_arg(args, argname="layers"):
                            locator="Layer parameter")
     return product
 
-
+# pylint: disable=dangerous-default-value
 def get_arg(args, argname, verbose_name, lower=False,
             errcode=None, permitted_values=[]):
     fmt = args.get(argname, "")
@@ -193,7 +194,7 @@ class GetParameters(object):
             crs_arg = "crs"
         self.crsid = get_arg(args, crs_arg, "Coordinate Reference System",
                              errcode=WMSException.INVALID_CRS,
-                             permitted_values=service_cfg["published_CRSs"].keys())
+                             permitted_values=get_service_cfg()["published_CRSs"].keys())
         self.crs = geometry.CRS(self.crsid)
         # Layers
         self.product = self.get_product(args)
@@ -268,10 +269,6 @@ class GetFeatureInfoParameters(GetParameters):
         self.j = int(j)
 
         return
-        raise WMSException(
-            "Time dimension value not supplied",
-            WMSException.MISSING_DIMENSION_VALUE,
-            locator="Time parameter")
 
 # Solar angle correction functions
 
@@ -287,7 +284,8 @@ def declination_rad(dt):
 
 
 def cosine_of_solar_zenith(lat, lon, utc_dt):
-    # Estimate cosine of solar zenith angle (angle between sun and local zenith) at requested latitude, longitude and datetime.
+    # Estimate cosine of solar zenith angle (angle between sun and local zenith)
+    # at requested latitude, longitude and datetime.
     # Formula taken from https://en.wikipedia.org/wiki/Solar_zenith_angle
     utc_seconds_since_midnight = (
         (utc_dt.hour * 60) + utc_dt.minute) * 60 + utc_dt.second
