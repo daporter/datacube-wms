@@ -1,3 +1,5 @@
+# pylint: skip-file
+
 response_cfg = {
     "Access-Control-Allow-Origin": "*",  # CORS header
     "Cache-Control": "public, max-age=3600"
@@ -86,7 +88,7 @@ layer_cfg = [
                 "extent_mask_func": lambda data, band: data[band] != data[band].attrs['nodata'],
                 "ignore_info_flags": [],
                 "data_manual_merge": True,
-                "always_fetch_bands": [ ],
+                "always_fetch_bands": [],
                 "apply_solar_corrections": False,
                 "styles": [
                     {
@@ -251,7 +253,8 @@ layer_cfg = [
                         "heat_mapped": True,
                         "index_function": lambda data: (data["nir"] - data["red"]) / (data["nir"] + data["red"]),
                         "needed_bands": ["red", "nir"],
-                        # Areas where the index_function returns outside the range are masked.
+                        # Areas where the index_function returns outside the
+                        # range are masked.
                         "range": [0.0, 1.0],
                     },
                     {
@@ -280,7 +283,8 @@ layer_cfg = [
                         "heat_mapped": True,
                         "index_function": lambda data: (data["nir"] - data["red"]) / (data["nir"] + data["red"]),
                         "needed_bands": ["red", "nir"],
-                        # Areas where the index_function returns outside the range are masked.
+                        # Areas where the index_function returns outside the
+                        # range are masked.
                         "range": [0.0, 1.0],
                         "components": {
                             "red": {

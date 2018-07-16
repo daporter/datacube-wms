@@ -1,10 +1,10 @@
 try:
     from datacube_wms.wms_cfg_local import layer_cfg
-except:
+except BaseException:
     from datacube_wms.wms_cfg import layer_cfg
 try:
     from datacube_wms.wms_cfg_local import service_cfg
-except:
+except BaseException:
     from datacube_wms.wms_cfg import service_cfg
 
 from datacube_wms.product_ranges import get_ranges, get_sub_ranges
@@ -36,7 +36,8 @@ class ProductLayerDef(object):
         self.name = product_cfg["name"]
         self.product_name = product_cfg["product_name"]
         if "__" in self.product_name:
-            raise Exception("Product names cannot have a double underscore '__' in them.")
+            raise Exception(
+                "Product names cannot have a double underscore '__' in them.")
         self.product_label = product_cfg["label"]
         self.product_type = product_cfg["type"]
         self.product_variant = product_cfg["variant"]
@@ -52,13 +53,16 @@ class ProductLayerDef(object):
         self.pq_band = product_cfg.get("pq_band")
         self.min_zoom = product_cfg.get("min_zoom_factor", 300.0)
         self.max_datasets_wms = product_cfg.get("max_datasets_wms", 0)
-        self.zoom_fill = product_cfg.get("zoomed_out_fill_colour", [150, 180, 200])
+        self.zoom_fill = product_cfg.get(
+            "zoomed_out_fill_colour", [150, 180, 200])
         self.ignore_flags_info = product_cfg.get("ignore_flags_info", [])
         self.always_fetch_bands = product_cfg.get("always_fetch_bands", [])
         self.data_manual_merge = product_cfg.get("data_manual_merge", False)
         self.band_drill = product_cfg.get("band_drill", [])
-        self.solar_correction = product_cfg.get("apply_solar_corrections", False)
-        self.sub_product_extractor = product_cfg.get("sub_product_extractor", None)
+        self.solar_correction = product_cfg.get(
+            "apply_solar_corrections", False)
+        self.sub_product_extractor = product_cfg.get(
+            "sub_product_extractor", None)
         self.sub_product_label = product_cfg.get("sub_product_label", None)
         if self.pq_name:
             self.pq_product = dc.index.products.get_by_name(self.pq_name)
@@ -89,30 +93,37 @@ class ProductLayerDef(object):
             try:
                 self.native_CRS = self.product.definition["storage"]["crs"]
                 if self.native_CRS not in svc_cfg.published_CRSs:
-                    raise Exception("Native CRS for product {} ({}) not in published CRSs".format(self.product_name, self.native_CRS))
+                    raise Exception(
+                        "Native CRS for product {} ({}) not in published CRSs".format(
+                            self.product_name, self.native_CRS))
                 self.native_CRS_def = svc_cfg.published_CRSs[self.native_CRS]
                 data = dc.load(self.product_name, dask_chunks={})
-                self.grid_high_x = len(data[svc_cfg.published_CRSs[self.native_CRS]["horizontal_coord"]])
-                self.grid_high_y = len(data[svc_cfg.published_CRSs[self.native_CRS]["vertical_coord"]])
+                self.grid_high_x = len(
+                    data[svc_cfg.published_CRSs[self.native_CRS]["horizontal_coord"]])
+                self.grid_high_y = len(
+                    data[svc_cfg.published_CRSs[self.native_CRS]["vertical_coord"]])
                 self.origin_x = data.affine[3]
                 self.origin_y = data.affine[5]
                 self.resolution_x = data.affine[0]
                 self.resolution_y = data.affine[4]
                 self.max_datasets_wcs = product_cfg.get("max_datasets_wcs", 0)
-            except:
+            except BaseException:
                 self.native_CRS = None
             bands = dc.list_measurements().ix[self.product_name]
             self.bands = bands.index.values
             self.nodata_values = bands['nodata'].values
-            self.nodata_dict = { a:b for a,b in zip(self.bands, self.nodata_values)  }
+            self.nodata_dict = {
+                a: b for a, b in zip(
+                    self.bands, self.nodata_values)}
 
     @property
     def bboxes(self):
         return {
-            crs_id: { "right": bbox["bottom"], "left": bbox["top"], "top": bbox["left"], "bottom": bbox["right"] } if service_cfg["published_CRSs"][crs_id].get("vertical_coord_first")
-                else { "right": bbox["right"], "left": bbox["left"], "top": bbox["top"], "bottom": bbox["bottom"] }
+            crs_id: {"right": bbox["bottom"], "left": bbox["top"], "top": bbox["left"], "bottom": bbox["right"]} if service_cfg["published_CRSs"][crs_id].get("vertical_coord_first")
+            else {"right": bbox["right"], "left": bbox["left"], "top": bbox["top"], "bottom": bbox["bottom"]}
             for crs_id, bbox in self.ranges["bboxes"].items()
         }
+
 
 class PlatformLayerDef(object):
     def __init__(self, platform_cfg, prod_idx, dc=None):
@@ -144,7 +155,8 @@ class LayerDefs(object):
             self.product_index = {}
             dc = get_cube()
             for platform_cfg in platforms_cfg:
-                platform = PlatformLayerDef(platform_cfg, self.product_index, dc=dc)
+                platform = PlatformLayerDef(
+                    platform_cfg, self.product_index, dc=dc)
                 self.platforms.append(platform)
                 self.platform_index[platform.name] = platform
             release_cube(dc)
@@ -160,8 +172,9 @@ class LayerDefs(object):
             return self.platform_index[name]
 
 
-def get_layers(refresh = False):
+def get_layers(refresh=False):
     return LayerDefs(layer_cfg, refresh)
+
 
 class ServiceCfg(object):
     _instance = None
@@ -182,7 +195,8 @@ class ServiceCfg(object):
             self.title = service_cfg["title"]
             self.url = service_cfg["url"]
             if not self.url.startswith("http"):
-                raise Exception("URL in service_cfg does not start with http or https.")
+                raise Exception(
+                    "URL in service_cfg does not start with http or https.")
             self.published_CRSs = {}
             for crs_str, crsdef in service_cfg["published_CRSs"].items():
                 self.published_CRSs[crs_str] = {
@@ -193,16 +207,20 @@ class ServiceCfg(object):
                 }
                 if self.published_CRSs[crs_str]["geographic"]:
                     if self.published_CRSs[crs_str]["horizontal_coord"] != "longitude":
-                        raise Exception("Published CRS {} is geographic but has a horizontal coordinate that is not 'longitude'".format(crs_str))
+                        raise Exception(
+                            "Published CRS {} is geographic but has a horizontal coordinate that is not 'longitude'".format(crs_str))
                     if self.published_CRSs[crs_str]["vertical_coord"] != "latitude":
-                        raise Exception("Published CRS {} is geographic but has a vertical coordinate that is not 'latitude'".format(crs_str))
+                        raise Exception(
+                            "Published CRS {} is geographic but has a vertical coordinate that is not 'latitude'".format(crs_str))
 
             if self.wcs:
                 self.default_geographic_CRS = service_cfg["default_geographic_CRS"]
                 if self.default_geographic_CRS not in self.published_CRSs:
-                    raise Exception("Configured default geographic CRS not listed in published CRSs.")
+                    raise Exception(
+                        "Configured default geographic CRS not listed in published CRSs.")
                 if not self.published_CRSs[self.default_geographic_CRS]["geographic"]:
-                    raise Exception("Configured default geographic CRS not listed in published CRSs as geographic.")
+                    raise Exception(
+                        "Configured default geographic CRS not listed in published CRSs as geographic.")
                 self.default_geographic_CRS_def = self.published_CRSs[self.default_geographic_CRS]
                 self.wcs_formats = {}
                 for fmt_name, fmt in service_cfg["wcs_formats"].items():
@@ -214,14 +232,17 @@ class ServiceCfg(object):
                     }
                     rpath = fmt["renderer"]
                     mod, func = rpath.rsplit(".", 1)
-                    _tmp = __import__(mod, globals(), locals(), [ func ], 0)
-                    self.wcs_formats[fmt_name]["renderer"] = getattr(_tmp, func)
+                    _tmp = __import__(mod, globals(), locals(), [func], 0)
+                    self.wcs_formats[fmt_name]["renderer"] = getattr(
+                        _tmp, func)
                 if not self.wcs_formats:
-                    raise Exception("Must configure at least one wcs format to support WCS.")
+                    raise Exception(
+                        "Must configure at least one wcs format to support WCS.")
 
                 self.native_wcs_format = service_cfg["native_wcs_format"]
                 if self.native_wcs_format not in self.wcs_formats:
-                    raise Exception("Configured native WCS format not a supported format.")
+                    raise Exception(
+                        "Configured native WCS format not a supported format.")
             else:
                 self.default_geographic_CRS = None
                 self.default_geographic_CRS_def = {}
@@ -239,12 +260,9 @@ class ServiceCfg(object):
             self.fees = service_cfg.get("fees", "")
             self.access_constraints = service_cfg.get("access_constraints", "")
 
-
     def __getitem__(self, name):
         return getattr(self, name)
 
 
 def get_service_cfg(refresh=False):
     return ServiceCfg(service_cfg, refresh)
-
-

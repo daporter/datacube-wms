@@ -1,6 +1,6 @@
 try:
     from datacube_wms.wms_cfg_local import service_cfg, layer_cfg, response_cfg
-except:
+except BaseException:
     from datacube_wms.wms_cfg import service_cfg, layer_cfg, response_cfg
 
 

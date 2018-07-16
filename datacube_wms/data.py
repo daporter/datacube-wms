@@ -16,13 +16,14 @@ from datacube_wms.cube_pool import get_cube, release_cube
 
 from datacube_wms.wms_layers import get_service_cfg
 from datacube_wms.wms_utils import img_coords_to_geopoint, int_trim, \
-        bounding_box_to_geom, GetMapParameters, GetFeatureInfoParameters, \
-        solar_correct_data
+    bounding_box_to_geom, GetMapParameters, GetFeatureInfoParameters, \
+    solar_correct_data
 from datacube_wms.ogc_utils import resp_headers
 
 
 class DataStacker(object):
-    def __init__(self, product, geobox, time, style=None, bands=None, **kwargs):
+    def __init__(self, product, geobox, time,
+                 style=None, bands=None, **kwargs):
         super(DataStacker, self).__init__(**kwargs)
         self._product = product
         self._geobox = geobox
@@ -32,7 +33,8 @@ class DataStacker(object):
             self._needed_bands = bands
         else:
             self._needed_bands = self._product.product.measurements.keys()
-        start_time = datetime(time.year, time.month, time.day) - timedelta(hours=product.time_zone)
+        start_time = datetime(time.year, time.month, time.day) - \
+            timedelta(hours=product.time_zone)
         self._time = [start_time, start_time + timedelta(days=1)]
 
     def needed_bands(self):
@@ -41,7 +43,8 @@ class DataStacker(object):
     def point_in_dataset_by_bounds(self, point, dataset):
         # Return true if dataset contains point
         # Deprecated - prefer point_in_dataset_by_extent
-        compare_geometry = bounding_box_to_geom(dataset.bounds, dataset.crs, self._geobox.crs)
+        compare_geometry = bounding_box_to_geom(
+            dataset.bounds, dataset.crs, self._geobox.crs)
         return compare_geometry.contains(point)
 
     def point_in_dataset_by_extent(self, point, dataset):
@@ -68,15 +71,19 @@ class DataStacker(object):
             prod_name = self._product.product_name
 
         # ODC Dataset Query
-        query = datacube.api.query.Query(product=prod_name, geopolygon=self._geobox.extent, time=time)
+        query = datacube.api.query.Query(
+            product=prod_name,
+            geopolygon=self._geobox.extent,
+            time=time)
         datasets = index.datasets.search_eager(**query.search_terms)
         # And sort by date
         try:
             datasets = sorted(datasets, key=lambda d: d.center_time)
-        except:
+        except BaseException:
             msg = ""
             for ds in datasets:
-                msg += str(ds.id) + ":" + str(ds.center_time) + str(ds.center_time.utcoffset()) + ", "
+                msg += str(ds.id) + ":" + str(ds.center_time) + \
+                    str(ds.center_time.utcoffset()) + ", "
             raise Exception("Yes we have inconsistent offset state: " + msg)
 
         # datasets.sort(key=lambda d: d.center_time)
@@ -103,7 +110,8 @@ class DataStacker(object):
         date_index = {}
         for dataset in iter(datasets):
             # Build a date-index of intersecting datasets
-            if dataset.extent.to_crs(self._geobox.crs).intersects(self._geobox.extent):
+            if dataset.extent.to_crs(
+                    self._geobox.crs).intersects(self._geobox.extent):
                 if dataset.center_time in date_index:
                     date_index[dataset.center_time].append(dataset)
                 else:
@@ -131,7 +139,9 @@ class DataStacker(object):
         dates = date_extents.keys()
 
         # Sort by size of geometry
-        biggest_geom_first = sorted(dates, key=lambda x: [date_extents[x].area, x], reverse=True)
+        biggest_geom_first = sorted(
+            dates, key=lambda x: [
+                date_extents[x].area, x], reverse=True)
 
         accum_geom = None
         filtered = []
@@ -145,27 +155,32 @@ class DataStacker(object):
                 filtered.extend(date_index[d])
         return filtered
 
-    def data(self, datasets, mask=False, manual_merge=False, skip_corrections=False, **kwargs):
+    def data(self, datasets, mask=False, manual_merge=False,
+             skip_corrections=False, **kwargs):
         if mask:
             prod = self._product.pq_product
             measurements = [prod.measurements[self._product.pq_band].copy()]
         else:
             prod = self._product.product
-            measurements = [prod.measurements[name].copy() for name in self.needed_bands()]
+            measurements = [prod.measurements[name].copy()
+                            for name in self.needed_bands()]
 
         with datacube.set_options(reproject_threads=1, fast_load=True):
             if manual_merge:
-                return self.manual_data_stack(datasets, measurements, mask, skip_corrections, **kwargs)
+                return self.manual_data_stack(
+                    datasets, measurements, mask, skip_corrections, **kwargs)
             elif self._product.solar_correction and not mask and not skip_corrections:
                 # Merge performed already by dataset extent, but we need to
-                # process the data for the datasets individually to do solar correction.
+                # process the data for the datasets individually to do solar
+                # correction.
                 merged = None
                 for i in range(0, len(datasets)):
                     holder = numpy.empty(shape=tuple(), dtype=object)
                     ds = datasets[i]
                     holder[()] = [ds]
                     sources = xarray.DataArray(holder)
-                    d = datacube.Datacube.load_data(sources, self._geobox, measurements, **kwargs)
+                    d = datacube.Datacube.load_data(
+                        sources, self._geobox, measurements, **kwargs)
                     for band in self.needed_bands():
                         if band != self._product.pq_band:
                             d[band] = solar_correct_data(d[band], ds)
@@ -182,9 +197,11 @@ class DataStacker(object):
                     holder = numpy.empty(shape=tuple(), dtype=object)
                     holder[()] = datasets
                     sources = xarray.DataArray(holder)
-                return datacube.Datacube.load_data(sources, self._geobox, measurements, **kwargs)
+                return datacube.Datacube.load_data(
+                    sources, self._geobox, measurements, **kwargs)
 
-    def manual_data_stack(self, datasets, measurements, mask, skip_corrections, **kwargs):
+    def manual_data_stack(self, datasets, measurements,
+                          mask, skip_corrections, **kwargs):
         # manual merge
         merged = None
         if mask:
@@ -196,7 +213,8 @@ class DataStacker(object):
             ds = datasets[i]
             holder[()] = [ds]
             sources = xarray.DataArray(holder)
-            d = datacube.Datacube.load_data(sources, self._geobox, measurements, **kwargs)
+            d = datacube.Datacube.load_data(
+                sources, self._geobox, measurements, **kwargs)
             extent_mask = None
             for band in bands:
                 for f in self._product.extent_mask_func:
@@ -225,7 +243,11 @@ def get_map(args):
     params = GetMapParameters(args)
 
     # Tiling.
-    stacker = DataStacker(params.product, params.geobox, params.time, style=params.style)
+    stacker = DataStacker(
+        params.product,
+        params.geobox,
+        params.time,
+        style=params.style)
     dc = get_cube()
     try:
         datasets = stacker.datasets(dc.index)
@@ -233,7 +255,8 @@ def get_map(args):
             body = _write_empty(params.geobox)
         elif params.zf < params.product.min_zoom or (params.product.max_datasets_wms > 0 and len(datasets) > params.product.max_datasets_wms):
             # Zoomed out to far to properly render data.
-            # Construct a polygon which is the union of the extents of the matching datasets.
+            # Construct a polygon which is the union of the extents of the
+            # matching datasets.
             extent = None
             extent_crs = None
             for ds in datasets:
@@ -247,9 +270,11 @@ def get_map(args):
                     extent_crs = extent.crs
             extent = extent.to_crs(params.crs)
 
-            body = _write_polygon(params.geobox, extent, params.product.zoom_fill)
+            body = _write_polygon(
+                params.geobox, extent, params.product.zoom_fill)
         else:
-            data = stacker.data(datasets, manual_merge=params.product.data_manual_merge)
+            data = stacker.data(
+                datasets, manual_merge=params.product.data_manual_merge)
             if params.style.masks:
                 if params.product.pq_name == params.product.name:
                     pq_data = xarray.Dataset({
@@ -325,7 +350,8 @@ def _write_empty(geobox):
 def _write_polygon(geobox, polygon, zoom_fill):
     geobox_ext = geobox.extent
     if geobox_ext.within(polygon):
-        data = numpy.full([geobox.height, geobox.width], fill_value=1, dtype="uint8")
+        data = numpy.full([geobox.height, geobox.width],
+                          fill_value=1, dtype="uint8")
     else:
         data = numpy.zeros([geobox.height, geobox.width], dtype="uint8")
         if not geobox_ext.disjoint(polygon):
@@ -335,9 +361,13 @@ def _write_polygon(geobox, polygon, zoom_fill):
             elif intersection.type == 'MultiPolygon':
                 coordinates_list = intersection.json["coordinates"]
             else:
-                raise Exception("Unexpected extent/geobox intersection geometry type: %s" % intersection.type)
+                raise Exception(
+                    "Unexpected extent/geobox intersection geometry type: %s" %
+                    intersection.type)
             for polygon_coords in coordinates_list:
-                pixel_coords = [~geobox.transform * coords for coords in polygon_coords[0]]
+                pixel_coords = [
+                    ~geobox.transform *
+                    coords for coords in polygon_coords[0]]
                 rs, cs = skimg_polygon([int_trim(c[1], 0, geobox.height - 1) for c in pixel_coords],
                                        [int_trim(c[0], 0, geobox.width - 1) for c in pixel_coords])
                 data[rs, cs] = 1
@@ -361,15 +391,16 @@ def get_s3_browser_uris(datasets):
 
     # convert to browsable link
     def convert(uri):
-        regex = re.compile("s3:\/\/(?P<bucket>[a-zA-Z0-9_\-]+)\/(?P<prefix>[\S]+)ARD-METADATA.yaml")
+        regex = re.compile(
+            "s3:\/\/(?P<bucket>[a-zA-Z0-9_\-]+)\/(?P<prefix>[\S]+)ARD-METADATA.yaml")
         uri_format = "http://{bucket}.s3-website-ap-southeast-2.amazonaws.com/?prefix={prefix}"
         result = regex.match(uri)
         if result is not None:
             new_uri = uri_format.format(bucket=result.group("bucket"),
                                         prefix=result.group("prefix"))
         else:
-            new_uri = uri;
-        return new_uri;
+            new_uri = uri
+        return new_uri
 
     formatted = [convert(uri) for uri in unique_uris]
 
@@ -406,7 +437,10 @@ def feature_info(args):
             available_dates = set()
             drill = {}
             for d in datasets:
-                idx_date = (d.center_time + timedelta(hours=params.product.time_zone)).date()
+                idx_date = (
+                    d.center_time +
+                    timedelta(
+                        hours=params.product.time_zone)).date()
                 available_dates.add(idx_date)
                 pixel_ds = None
                 if idx_date == params.time and "lon" not in feature_json:
@@ -415,7 +449,8 @@ def feature_info(args):
                     # Use i,j image coordinates to extract data pixel from dataset, and
                     # convert to lat/long geographic coordinates
                     if service_cfg.published_CRSs[params.crsid]["geographic"]:
-                        # Geographic coordinate systems (e.g. EPSG:4326/WGS-84) are already in lat/long
+                        # Geographic coordinate systems (e.g. EPSG:4326/WGS-84)
+                        # are already in lat/long
                         feature_json["lat"] = data.latitude[params.j].item()
                         feature_json["lon"] = data.longitude[params.i].item()
                         pixel_ds = data.isel(**isel_kwargs)
@@ -441,7 +476,8 @@ def feature_info(args):
                     pixel_ds = data.isel(**isel_kwargs)
 
                     # Get accurate timestamp from dataset
-                    feature_json["time"] = d.center_time.strftime("%Y-%m-%d %H:%M:%S UTC")
+                    feature_json["time"] = d.center_time.strftime(
+                        "%Y-%m-%d %H:%M:%S UTC")
 
                     # Collect raw band values for pixel
                     feature_json["bands"] = {}
@@ -470,7 +506,10 @@ def feature_info(args):
             pqdi = -1
             for pqd in pq_datasets:
                 pqdi += 1
-                idx_date = (pqd.center_time + timedelta(hours=params.product.time_zone)).date()
+                idx_date = (
+                    pqd.center_time +
+                    timedelta(
+                        hours=params.product.time_zone)).date()
                 if idx_date == params.time:
                     pq_data = stacker.data([pqd], mask=True)
                     pq_pixel_ds = pq_data.isel(**isel_kwargs)
@@ -496,9 +535,9 @@ def feature_info(args):
                             val = values['0']
                         feature_json["flags"][mk] = val
 
-            lads = list(available_dates)
-            lads.sort()
-            feature_json["data_available_for_dates"] = [d.strftime("%Y-%m-%d") for d in lads]
+            lads = sorted(available_dates)
+            feature_json["data_available_for_dates"] = [
+                d.strftime("%Y-%m-%d") for d in lads]
             feature_json["data_links"] = sorted(get_s3_browser_uris(datasets))
         release_cube(dc)
     except Exception as e:
@@ -515,4 +554,5 @@ def feature_info(args):
             }
         ]
     }
-    return json.dumps(result), 200, resp_headers({"Content-Type": "application/json"})
+    return json.dumps(result), 200, resp_headers(
+        {"Content-Type": "application/json"})

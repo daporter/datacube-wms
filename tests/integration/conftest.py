@@ -1,6 +1,7 @@
 import pytest
 import datacube
 
+
 def pytest_addoption(parser):
     parser.addoption("--db_hostname", action="store")
     parser.addoption("--db_port", action="store")
@@ -16,12 +17,13 @@ def db_hostname(request):
 def db_port(request):
     return request.config.getoption("--db_port")
 
+
 @pytest.fixture
 def cube(db_hostname, db_port):
     def get():
         config = {}
         config['db_hostname'] = db_hostname
-        config['db_port']     = db_port
+        config['db_port'] = db_port
         config['db_database'] = 'postgres'
         config['db_username'] = 'postgres'
         config['db_password'] = 'dbtestpassword'
@@ -29,9 +31,9 @@ def cube(db_hostname, db_port):
         return dc
     return get
 
+
 @pytest.fixture
 def release_cube_dummy():
     def release(arg):
         pass
     return release
-

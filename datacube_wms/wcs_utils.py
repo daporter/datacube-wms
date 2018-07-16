@@ -70,7 +70,7 @@ class WCS1GetCoverageRequest(object):
             self.response_crs = self.request_crs
 
         # Arguments: One of BBOX or TIME is required
-        #if "bbox" not in args and "time" not in args:
+        # if "bbox" not in args and "time" not in args:
         #    raise WCS1Exception("At least one of BBOX or TIME parameters must be supplied",
         #                        WCS1Exception.MISSING_PARAMETER_VALUE,
         #                        locator="BBOX or TIME parameter"
@@ -84,10 +84,12 @@ class WCS1GetCoverageRequest(object):
                                 locator="BBOX or TIME parameter")
         try:
             if svc_cfg.published_CRSs[self.request_crsid]["vertical_coord_first"]:
-                self.miny, self.minx, self.maxy, self.maxx = map(float, args['bbox'].split(','))
+                self.miny, self.minx, self.maxy, self.maxx = map(
+                    float, args['bbox'].split(','))
             else:
-                self.minx, self.miny, self.maxx, self.maxy = map(float, args['bbox'].split(','))
-        except:
+                self.minx, self.miny, self.maxx, self.maxy = map(
+                    float, args['bbox'].split(','))
+        except BaseException:
             raise WCS1Exception("Invalid BBOX parameter",
                                 WCS1Exception.INVALID_PARAMETER_VALUE,
                                 locator="BBOX parameter")
@@ -95,14 +97,16 @@ class WCS1GetCoverageRequest(object):
         # Argument: TIME
         if "time" not in args:
             #      CEOS treats no supplied time argument as all time.
-            # I'm really not sure what the right thing to do is, but QGIS wants us to do SOMETHING
+            # I'm really not sure what the right thing to do is, but QGIS wants
+            # us to do SOMETHING
             if self.format["multi-time"]:
                 self.times = self.product.ranges["times"]
             else:
-                self.times = [ self.product.ranges["times"][-1] ]
+                self.times = [self.product.ranges["times"][-1]]
         else:
             # TODO: the min/max/res format option?
-            # It's a bit underspeced. I'm not sure what the "res" would look like.
+            # It's a bit underspeced. I'm not sure what the "res" would look
+            # like.
             times = args["time"].split(",")
             self.times = []
             if times == "now":
@@ -113,7 +117,8 @@ class WCS1GetCoverageRequest(object):
                         time = datetime.datetime.strptime(t, "%Y-%m-%d").date()
                         if time not in self.product.ranges["time_set"]:
                             raise WCS1Exception(
-                                "Time value '%s' not a valid date for coverage %s" % (t,self.product_name),
+                                "Time value '%s' not a valid date for coverage %s" % (
+                                    t, self.product_name),
                                 WCS1Exception.INVALID_PARAMETER_VALUE,
                                 locator="TIME parameter"
                             )
@@ -134,19 +139,21 @@ class WCS1GetCoverageRequest(object):
                 )
             elif len(times) > 1 and not self.format["multi-time"]:
                 raise WCS1Exception(
-                    "Cannot select more than one time slice with the %s format" % self.format["name"],
+                    "Cannot select more than one time slice with the %s format" % self.format[
+                        "name"],
                     WCS1Exception.INVALID_PARAMETER_VALUE,
                     locator="TIME and FORMAT parameters"
                 )
 
         # Range constraint parameter: MEASUREMENTS
         # No default is set in the DescribeCoverage, so it is required
-        # But QGIS wants us to work without one, so let's try picking a reasonable default
+        # But QGIS wants us to work without one, so let's try picking a
+        # reasonable default
         if "measurements" not in args:
             if len(self.product.bands) <= 3:
                 self.bands = list(self.product.bands)
             elif "red" in self.product.bands and "green" in self.product.bands and "blue" in self.product.bands:
-                self.bands = [ "red", "green", "blue" ]
+                self.bands = ["red", "green", "blue"]
             else:
                 self.bands = list(self.product.bands[0:3])
         else:
@@ -170,7 +177,8 @@ class WCS1GetCoverageRequest(object):
                                 locator="EXCEPTIONS parameter")
 
         # Argument: INTERPOLATION (optional only nearest-neighbour currently supported.)
-        #      If 'none' is supported in future, validation of width/height/res will need to change.
+        # If 'none' is supported in future, validation of width/height/res will
+        # need to change.
         if "interpolation" in args and args["interpolation"] != "nearest neighbor":
             raise WCS1Exception("Unsupported interpolation method: " % args["interpolation"],
                                 WCS1Exception.INVALID_PARAMETER_VALUE,
@@ -186,7 +194,7 @@ class WCS1GetCoverageRequest(object):
                                     WCS1Exception.MISSING_PARAMETER_VALUE,
                                     locator="RESX/RESY/WIDTH/HEIGHT parameters")
             try:
-                self.height=int(args["height"])
+                self.height = int(args["height"])
                 if self.height < 1:
                     raise ValueError()
             except ValueError:
@@ -194,15 +202,15 @@ class WCS1GetCoverageRequest(object):
                                     WCS1Exception.INVALID_PARAMETER_VALUE,
                                     locator="HEIGHT parameter")
             try:
-                self.width=int(args["width"])
+                self.width = int(args["width"])
                 if self.width < 1:
                     raise ValueError()
             except ValueError:
                 raise WCS1Exception("WIDTH parameter must be a positive integer",
                                     WCS1Exception.INVALID_PARAMETER_VALUE,
                                     locator="WIDTH parameter")
-            self.resx = ( self.maxx - self.minx) / self.width
-            self.resy = ( self.maxy - self.miny) / self.height
+            self.resx = (self.maxx - self.minx) / self.width
+            self.resy = (self.maxy - self.miny) / self.height
         elif "resx" in args:
             if "resy" not in args:
                 raise WCS1Exception("RESX parameter supplied without RESY parameter",
@@ -228,8 +236,8 @@ class WCS1GetCoverageRequest(object):
                 raise WCS1Exception("RESY parameter must be a positive number",
                                     WCS1Exception.INVALID_PARAMETER_VALUE,
                                     locator="RESY parameter")
-            self.width = ( self.maxx - self.minx) / self.resx
-            self.height = ( self.maxy - self.miny) / self.resy
+            self.width = (self.maxx - self.minx) / self.resx
+            self.height = (self.maxy - self.miny) / self.resy
             self.width = int(self.width + 0.5)
             self.height = int(self.height + 0.5)
         elif "height" in args:
@@ -246,14 +254,22 @@ class WCS1GetCoverageRequest(object):
                                 locator="RESX/RESY/WIDTH/HEIGHT parameters")
 
         self.extent = geometry.polygon([(self.minx, self.miny),
-                                 (self.minx, self.maxy),
-                                 (self.maxx, self.maxy),
-                                 (self.maxx, self.miny),
-                                 (self.minx, self.miny)],
-                                self.request_crs)
+                                        (self.minx, self.maxy),
+                                        (self.maxx, self.maxy),
+                                        (self.maxx, self.miny),
+                                        (self.minx, self.miny)],
+                                       self.request_crs)
 
-        self.affine = Affine.translation(self.minx, self.miny) * Affine.scale((self.maxx-self.minx)/self.width, (self.maxy-self.miny)/self.height)
-        self.geobox = geometry.GeoBox(self.width, self.height, self.affine, self.request_crs)
+        self.affine = Affine.translation(
+            self.minx,
+            self.miny) * Affine.scale(
+            (self.maxx - self.minx) / self.width,
+            (self.maxy - self.miny) / self.height)
+        self.geobox = geometry.GeoBox(
+            self.width,
+            self.height,
+            self.affine,
+            self.request_crs)
 
 
 def get_coverage_data(req):
@@ -273,7 +289,11 @@ def get_coverage_data(req):
         datasets.extend(t_datasets)
     if not datasets:
         # TODO: Return an empty coverage file with full metadata?
-        extents = dc.load(dask_chunks={}, product=req.product, geopolygon=req.geobox.extent, time=stacker._time)
+        extents = dc.load(
+            dask_chunks={},
+            product=req.product,
+            geopolygon=req.geobox.extent,
+            time=stacker._time)
         svc = get_service_cfg()
         x_range = (req.minx, req.maxx)
         y_range = (req.miny, req.maxy)
@@ -297,18 +317,18 @@ def get_coverage_data(req):
             )
         if svc.published_CRSs[req.request_crsid]["vertical_coord_first"]:
             nparrays = {
-                band: ( (yname, xname),
-                        numpy.full( (len(yvals), len(xvals)),
-                                    req.product.nodata_dict[band])
-                        )
+                band: ((yname, xname),
+                       numpy.full((len(yvals), len(xvals)),
+                                  req.product.nodata_dict[band])
+                       )
                 for band in req.bands
             }
         else:
             nparrays = {
-                band: ( (xname, yname),
-                        numpy.full( (len(xvals), len(yvals)),
-                                    req.product.nodata_dict[band])
-                        )
+                band: ((xname, yname),
+                       numpy.full((len(xvals), len(yvals)),
+                                  req.product.nodata_dict[band])
+                       )
                 for band in req.bands
             }
         data = xarray.Dataset(
@@ -321,12 +341,16 @@ def get_coverage_data(req):
         release_cube(dc)
         return data
 
-    if req.product.max_datasets_wcs > 0 and len(datasets) > req.product.max_datasets_wcs:
-        raise WCS1Exception("This request processes too much data to be served in a reasonable amount of time. Please reduce the bounds of your request and try again. (max: %d, this request requires: %d)" % (req.product.max_datasets_wcs, len(datasets)))
+    if req.product.max_datasets_wcs > 0 and len(
+            datasets) > req.product.max_datasets_wcs:
+        raise WCS1Exception(
+            "This request processes too much data to be served in a reasonable amount of time. Please reduce the bounds of your request and try again. (max: %d, this request requires: %d)" %
+            (req.product.max_datasets_wcs, len(datasets)))
 
     if req.format["multi-time"]:
         # Group by solar day
-        group_by = datacube.api.query.query_group_by(time=req.times, group_by='solar_day')
+        group_by = datacube.api.query.query_group_by(
+            time=req.times, group_by='solar_day')
         datasets = dc.group_datasets(datasets, group_by)
 
     stacker = DataStacker(req.product,
@@ -340,7 +364,8 @@ def get_coverage_data(req):
 
 def get_tiff(req, data):
     """Uses rasterio MemoryFiles in order to return a streamable GeoTiff response"""
-    # Copied from CEOS.  Does not seem to support multi-time dimension data - is this even possible in GeoTiff?
+    # Copied from CEOS.  Does not seem to support multi-time dimension data -
+    # is this even possible in GeoTiff?
     supported_dtype_map = {
         'uint8': 1,
         'uint16': 2,
@@ -373,14 +398,15 @@ def get_tiff(req, data):
             for idx, band in enumerate(data.data_vars, start=1):
                 dst.write(data[band].values, idx)
             dst.set_nodatavals(
-                [ req.product.nodata_dict[band] if band in req.product.nodata_dict else 0 for band in data.data_vars ]
+                [req.product.nodata_dict[band]
+                    if band in req.product.nodata_dict else 0 for band in data.data_vars]
             )
         return memfile.read()
 
 
 def get_netcdf(req, data):
     # Cleanup dataset attributes for NetCDF export
-    data.attrs["crs"] = req.response_crsid # geometry.CRS(response_crs)
+    data.attrs["crs"] = req.response_crsid  # geometry.CRS(response_crs)
     for v in data.data_vars.values():
         v.attrs["crs"] = req.response_crsid
         if "spectral_definition" in v.attrs:
@@ -397,9 +423,10 @@ def _get_transform_from_xr(xname, yname, dataset):
     # Looks like the rasterio equivalent of a Geobox.
     # Adapted from CEOS to work with non-geographic CRSs
     from rasterio.transform import from_bounds
-    geotransform = from_bounds(getattr(dataset,xname)[0], getattr(dataset,yname)[0],
-                               getattr(dataset,xname)[-1], getattr(dataset,yname)[-1],
-                               len(getattr(dataset,xname)), len(getattr(dataset,yname)))
+    geotransform = from_bounds(getattr(dataset, xname)[0], getattr(dataset, yname)[0],
+                               getattr(
+                                   dataset, xname)[-1], getattr(dataset, yname)[-1],
+                               len(getattr(dataset, xname)), len(getattr(dataset, yname)))
 
     return geotransform
 
@@ -412,4 +439,3 @@ wcs_formats = {
         "multi-time": False
     },
 }
-

@@ -11,7 +11,6 @@ from datacube_wms.ogc_exceptions import OGCException, WCS1Exception, WMSExceptio
 from datacube_wms.wms_layers import get_service_cfg
 
 
-
 app = Flask(__name__.split('.')[0])
 
 
@@ -26,10 +25,11 @@ def lower_get_args():
             d[kl] = v
     return d
 
+
 @app.route('/')
 def ogc_impl():
     nocase_args = lower_get_args()
-    service = nocase_args.get("service","").upper()
+    service = nocase_args.get("service", "").upper()
     svc_cfg = get_service_cfg()
     try:
         if service == "WMS":
@@ -37,13 +37,17 @@ def ogc_impl():
             if svc_cfg.wms:
                 return handle_wms(nocase_args)
             else:
-                raise WMSException("Invalid service", locator="Service parameter")
+                raise WMSException(
+                    "Invalid service",
+                    locator="Service parameter")
         elif service == "WCS":
             # WCS operation Map
             if svc_cfg.wcs:
                 return handle_wcs(nocase_args)
             else:
-                raise WCS1Exception("Invalid service", locator="Service parameter")
+                raise WCS1Exception(
+                    "Invalid service",
+                    locator="Service parameter")
         else:
             # Should we return a WMS or WCS exception if there is no service specified?
             # Defaulting to WMS because that's what we already have.
@@ -56,8 +60,7 @@ def ogc_impl():
             eclass = WCS1Exception
         else:
             eclass = WMSException
-        ogc_e = eclass("Unexpected server error: %s" % str(e), http_response=500)
+        ogc_e = eclass(
+            "Unexpected server error: %s" %
+            str(e), http_response=500)
         return ogc_e.exception_response(traceback=traceback.extract_tb(tb))
-
-
-

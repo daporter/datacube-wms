@@ -46,7 +46,7 @@ class WMSException(OGCException):
     OPERATION_NOT_SUPPORTED = "OperationNotSupported"
 
     version = "1.3.0"
-    schema_url="http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd"
+    schema_url = "http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd"
 
 
 class WCS1Exception(OGCException):
@@ -55,6 +55,4 @@ class WCS1Exception(OGCException):
     INVALID_PARAMETER_VALUE = "InvalidParameterValue"
 
     version = "1.2.0"
-    schema_url="http://schemas.opengis.net/wcs/1.0.0/OGC-exception.xsd"
-
-
+    schema_url = "http://schemas.opengis.net/wcs/1.0.0/OGC-exception.xsd"

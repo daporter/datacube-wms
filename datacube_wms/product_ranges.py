@@ -2,7 +2,7 @@ from datetime import date, datetime, timedelta
 import datacube
 try:
     from datacube_wms.wms_cfg_local import service_cfg, layer_cfg
-except:
+except BaseException:
     from datacube_wms.wms_cfg import service_cfg, layer_cfg
 from psycopg2.extras import Json
 from itertools import zip_longest
@@ -68,10 +68,14 @@ def determine_product_ranges(dc, product_name, time_offset, extractor):
                     "time_set": set(),
                     "extents": {crsid: None for crsid in crsids}
                 }
-            sub_r[path]["lat"]["min"] = accum_min(sub_r[path]["lat"]["min"], ds.metadata.lat.begin)
-            sub_r[path]["lat"]["max"] = accum_max(sub_r[path]["lat"]["max"], ds.metadata.lat.end)
-            sub_r[path]["lon"]["min"] = accum_min(sub_r[path]["lon"]["min"], ds.metadata.lon.begin)
-            sub_r[path]["lon"]["max"] = accum_max(sub_r[path]["lon"]["max"], ds.metadata.lon.end)
+            sub_r[path]["lat"]["min"] = accum_min(
+                sub_r[path]["lat"]["min"], ds.metadata.lat.begin)
+            sub_r[path]["lat"]["max"] = accum_max(
+                sub_r[path]["lat"]["max"], ds.metadata.lat.end)
+            sub_r[path]["lon"]["min"] = accum_min(
+                sub_r[path]["lon"]["min"], ds.metadata.lon.begin)
+            sub_r[path]["lon"]["max"] = accum_max(
+                sub_r[path]["lon"]["max"], ds.metadata.lon.end)
         else:
             path = None
 
@@ -92,24 +96,36 @@ def determine_product_ranges(dc, product_name, time_offset, extractor):
                 ext = ext.to_crs(crs)
             cvx_ext = ext.convex_hull
             if cvx_ext != ext:
-                print ("INFO: Dataset", ds.id, "CRS", crsid, "extent is not convex.")
+                print(
+                    "INFO: Dataset",
+                    ds.id,
+                    "CRS",
+                    crsid,
+                    "extent is not convex.")
             if extents[crsid] is None:
                 extents[crsid] = cvx_ext
             else:
                 if not extents[crsid].is_valid:
-                    print("WARNING: Extent Union for", ds.id, "CRS", crsid, "is not valid")
+                    print(
+                        "WARNING: Extent Union for",
+                        ds.id,
+                        "CRS",
+                        crsid,
+                        "is not valid")
                 if not cvx_ext.is_valid:
                     print("WARNING: Extent for CRS", crsid, "is not valid")
-                union = extents[crsid].union(cvx_ext);
+                union = extents[crsid].union(cvx_ext)
                 if union._geom is not None:
                     extents[crsid] = union
                 else:
-                    print("WARNING: Dataset", ds.id, "CRS", crsid, "union topology exception, ignoring union")
+                    print("WARNING: Dataset", ds.id, "CRS", crsid,
+                          "union topology exception, ignoring union")
             if path is not None:
                 if sub_r[path]["extents"][crsid] is None:
                     sub_r[path]["extents"][crsid] = cvx_ext
                 else:
-                    sub_r[path]["extents"][crsid] = sub_r[path]["extents"][crsid].union(cvx_ext)
+                    sub_r[path]["extents"][crsid] = sub_r[path]["extents"][crsid].union(
+                        cvx_ext)
 
         ds_count += 1
 
@@ -119,11 +135,13 @@ def determine_product_ranges(dc, product_name, time_offset, extractor):
     if extractor is not None:
         for path in sub_r.keys():
             sub_r[path]["times"] = sorted(sub_r[path]["time_set"])
-            sub_r[path]["bboxes"] = {crsid: sub_r[path]["extents"][crsid].boundingbox for crsid in crsids}
+            sub_r[path]["bboxes"] = {
+                crsid: sub_r[path]["extents"][crsid].boundingbox for crsid in crsids}
             del sub_r[path]["extents"]
         r["sub_products"] = sub_r
     end = datetime.now()
-    print("Scanned %d datasets in %d seconds" % (ds_count, (end - start).seconds))
+    print("Scanned %d datasets in %d seconds" %
+          (ds_count, (end - start).seconds))
     return r
 
 
@@ -162,7 +180,7 @@ def rng_update(conn, rng):
                   lat_min=%s,
                   lat_max=%s,
                   lon_min=%s,
-                  lon_max=%s,   
+                  lon_max=%s,
                   dates=%s,
                   bboxes=%s
             WHERE product_id=%s
@@ -188,7 +206,7 @@ def rng_update(conn, rng):
                   lat_min=%s,
                   lat_max=%s,
                   lon_min=%s,
-                  lon_max=%s,   
+                  lon_max=%s,
                   dates=%s,
                   bboxes=%s
             WHERE id=%s
@@ -200,7 +218,7 @@ def rng_update(conn, rng):
 
                      Json([t.strftime("%Y-%m-%d") for t in rng["times"]]),
                      Json({crsid: {"top": bbox.top, "bottom": bbox.bottom, "left": bbox.left, "right": bbox.right}
-                       for crsid, bbox in rng["bboxes"].items()
+                           for crsid, bbox in rng["bboxes"].items()
                            }),
                      rng["product_id"],
                      )
@@ -280,6 +298,7 @@ def ranges_equal(r1, rdb):
         return False
     return True
 
+
 def update_range(dc, product):
     def find(list, key, value):
         for d in list:
@@ -287,7 +306,8 @@ def update_range(dc, product):
                 return d
         return None
 
-    products = [find(p["products"], "product_name", product) for p in layer_cfg]
+    products = [find(p["products"], "product_name", product)
+                for p in layer_cfg]
     if products[0] is not None:
         layer = products[0]
         product_range = determine_product_ranges(dc,
@@ -382,10 +402,13 @@ def get_ranges(dc, product, path=None):
         results = conn.execute("select * from wms.sub_product_ranges where product_id=%s and sub_product_id=%s",
                                product_id, path)
     else:
-        results = conn.execute("select * from wms.product_ranges where id=%s", product_id)
+        results = conn.execute(
+            "select * from wms.product_ranges where id=%s",
+            product_id)
     for result in results:
         conn.close()
-        times = [datetime.strptime(d, "%Y-%m-%d").date() for d in result["dates"]]
+        times = [datetime.strptime(d, "%Y-%m-%d").date()
+                 for d in result["dates"]]
         return {
             "product_id": product_id,
             "path": path,
@@ -414,5 +437,8 @@ def get_sub_ranges(dc, product):
         product_id = product.id
 
     conn = get_sqlconn(dc)
-    results = conn.execute("select sub_product_id from wms.sub_product_ranges where product_id=%s", product_id)
-    return {r["sub_product_id"]: get_ranges(dc, product_id, r["sub_product_id"]) for r in results}
+    results = conn.execute(
+        "select sub_product_id from wms.sub_product_ranges where product_id=%s",
+        product_id)
+    return {r["sub_product_id"]: get_ranges(
+        dc, product_id, r["sub_product_id"]) for r in results}

@@ -1,4 +1,5 @@
-# Static config for the wms metadata.
+# pylint: skip-file
+
 
 response_cfg = {
     "Access-Control-Allow-Origin": "*",  # CORS header
@@ -61,7 +62,8 @@ layer_cfg = [
     # Layer Config is a list of platform configs
     {
         # Name and title of the platform layer.
-        # Platform layers are not mappable. The name is for internal server use only.
+        # Platform layers are not mappable. The name is for internal server use
+        # only.
         "name": "Sentinel-2-NRT",
         "title": "Sentinel-2-NRT",
         "abstract": "Sentinel 2 NRT data",
@@ -98,7 +100,8 @@ layer_cfg = [
                 # 9 is good value for imagery of Australia.
                 "time_zone": 9,
                 # Extent mask function
-                # Determines what portions of dataset is potentially meaningful data.
+                # Determines what portions of dataset is potentially meaningful
+                # data.
                 "extent_mask_func": lambda data, band: (data[band] != data[band].attrs['nodata']),
                 # Flags listed here are ignored in GetFeatureInfo requests.
                 # (defaults to empty list)
@@ -140,11 +143,11 @@ layer_cfg = [
                                 "nbart_red": 1.0
                             },
                             "green": {
-                                 "nbart_green": 1.0
+                                "nbart_green": 1.0
                             },
                             "blue": {
-                                 "nbart_blue": 0.6,
-                                 "nbart_coastal_aerosol": 0.4
+                                "nbart_blue": 0.6,
+                                "nbart_coastal_aerosol": 0.4
                             }
                         },
                         "scale_range": [0.0, 3000.0]
@@ -351,7 +354,8 @@ layer_cfg = [
                         "heat_mapped": True,
                         "index_function": lambda data: (data["nbart_nir_1"] - data["nbart_red"]) / (data["nbart_nir_1"] + data["nbart_red"]),
                         "needed_bands": ["nbart_red", "nbart_nir_1"],
-                        # Areas where the index_function returns outside the range are masked.
+                        # Areas where the index_function returns outside the
+                        # range are masked.
                         "range": [0.0, 1.0],
                     },
                     {
@@ -374,7 +378,8 @@ layer_cfg = [
                     },
                     # Mask layers - examples of how to display raw pixel quality data.
                     # This works by creatively mis-using the Heatmap style class.
-                    # Hybrid style - mixes a linear mapping and a heat mapped index
+                    # Hybrid style - mixes a linear mapping and a heat mapped
+                    # index
                     {
                         "name": "rgb_ndvi",
                         "title": "NDVI plus RGB",
@@ -383,7 +388,8 @@ layer_cfg = [
                         "heat_mapped": True,
                         "index_function": lambda data: (data["nbart_nir_1"] - data["nbart_red"]) / (data["nbart_nir_1"] + data["nbart_red"]),
                         "needed_bands": ["nbart_red", "nbart_nir_1"],
-                        # Areas where the index_function returns outside the range are masked.
+                        # Areas where the index_function returns outside the
+                        # range are masked.
                         "range": [0.0, 1.0],
                         "components": {
                             "red": {
@@ -433,7 +439,8 @@ layer_cfg = [
                 # 9 is good value for imagery of Australia.
                 "time_zone": 9,
                 # Extent mask function
-                # Determines what portions of dataset is potentially meaningful data.
+                # Determines what portions of dataset is potentially meaningful
+                # data.
                 "extent_mask_func": lambda data, band: (data[band] != data[band].attrs['nodata']),
                 # Flags listed here are ignored in GetFeatureInfo requests.
                 # (defaults to empty list)
@@ -688,7 +695,8 @@ layer_cfg = [
                         "index_function": lambda data: (data["nbart_nir_1"] - data["nbart_red"]) / (
                                     data["nbart_nir_1"] + data["nbart_red"]),
                         "needed_bands": ["nbart_red", "nbart_nir_1"],
-                        # Areas where the index_function returns outside the range are masked.
+                        # Areas where the index_function returns outside the
+                        # range are masked.
                         "range": [0.0, 1.0],
                     },
                     {
@@ -713,7 +721,8 @@ layer_cfg = [
                     },
                     # Mask layers - examples of how to display raw pixel quality data.
                     # This works by creatively mis-using the Heatmap style class.
-                    # Hybrid style - mixes a linear mapping and a heat mapped index
+                    # Hybrid style - mixes a linear mapping and a heat mapped
+                    # index
                     {
                         "name": "rgb_ndvi",
                         "title": "NDVI plus RGB",
@@ -723,7 +732,8 @@ layer_cfg = [
                         "index_function": lambda data: (data["nbart_nir_1"] - data["nbart_red"]) / (
                                     data["nbart_nir_1"] + data["nbart_red"]),
                         "needed_bands": ["nbart_red", "nbart_nir_1"],
-                        # Areas where the index_function returns outside the range are masked.
+                        # Areas where the index_function returns outside the
+                        # range are masked.
                         "range": [0.0, 1.0],
                         "components": {
                             "red": {
@@ -748,4 +758,3 @@ layer_cfg = [
         ],
     },
 ]
-

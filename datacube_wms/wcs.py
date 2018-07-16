@@ -15,7 +15,9 @@ def handle_wcs(nocase_args):
     operation = nocase_args.get("request", "").upper()
     # WMS operation Map
     if not operation:
-        raise WCS1Exception("No operation specified", locator="Request parameter")
+        raise WCS1Exception(
+            "No operation specified",
+            locator="Request parameter")
     elif operation == "GETCAPABILITIES":
         return get_capabilities(nocase_args)
     elif operation == "DESCRIBECOVERAGE":
@@ -23,12 +25,15 @@ def handle_wcs(nocase_args):
     elif operation == "GETCOVERAGE":
         return get_coverage(nocase_args)
     else:
-        raise WCS1Exception("Unrecognised operation: %s" % operation, locator="Request parameter")
+        raise WCS1Exception(
+            "Unrecognised operation: %s" %
+            operation, locator="Request parameter")
 
 
 def get_capabilities(args):
     # TODO: Handle updatesequence request parameter for cache consistency.
-    # Note: Only WCS v1.0.0 is fully supported at this stage, so no version negotiation is necessary
+    # Note: Only WCS v1.0.0 is fully supported at this stage, so no version
+    # negotiation is necessary
     section = args.get("section")
     if section:
         section = section.lower()
@@ -46,23 +51,27 @@ def get_capabilities(args):
     elif section == "/wcs_capabilities/contentmetadata":
         show_content_metadata = True
     else:
-        raise WCS1Exception("Invalid section: %s" % section, WCS1Exception.INVALID_PARAMETER_VALUE, locator="Section parameter")
+        raise WCS1Exception(
+            "Invalid section: %s" %
+            section,
+            WCS1Exception.INVALID_PARAMETER_VALUE,
+            locator="Section parameter")
 
     # Extract layer metadata from Datacube.
     platforms = get_layers(refresh=True)
     return (
-            render_template("wcs_capabilities.xml",
-                            show_service=show_service,
-                            show_capability=show_capability,
-                            show_content_metadata=show_content_metadata,
-                            service=get_service_cfg(),
-                            platforms=platforms),
-            200,
-            resp_headers({
-                    "Content-Type": "application/xml",
-                    "Cache-Control": "no-cache",
-                    "Cache-Control": "max-age=0"
-            })
+        render_template("wcs_capabilities.xml",
+                        show_service=show_service,
+                        show_capability=show_capability,
+                        show_content_metadata=show_content_metadata,
+                        service=get_service_cfg(),
+                        platforms=platforms),
+        200,
+        resp_headers({
+            "Content-Type": "application/xml",
+            "Cache-Control": "no-cache",
+            "Cache-Control": "max-age=0"
+        })
     )
 
 
@@ -102,16 +111,15 @@ def desc_coverages(args):
 
 
 def get_coverage(args):
-    # Note: Only WCS v1.0.0 is fully supported at this stage, so no version negotiation is necessary
+    # Note: Only WCS v1.0.0 is fully supported at this stage, so no version
+    # negotiation is necessary
     req = WCS1GetCoverageRequest(args)
     data = get_coverage_data(req)
     return (
-            req.format["renderer"](req, data),
-            200,
-            resp_headers({
-                "Content-Type": req.format["mime"],
-                'content-disposition': 'attachment; filename=%s.%s' % (req.product_name, req.format["extension"])
-            })
+        req.format["renderer"](req, data),
+        200,
+        resp_headers({
+            "Content-Type": req.format["mime"],
+            'content-disposition': 'attachment; filename=%s.%s' % (req.product_name, req.format["extension"])
+        })
     )
-
-

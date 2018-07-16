@@ -1,3 +1,5 @@
+# pylint: skip-file
+
 import datacube
 import pytest
 
@@ -6,44 +8,45 @@ import flask
 import json
 
 test_data = [
-({
-    "bbox": "12993071.8160274,-2504688.542848654,13149614.84995544,-2348145.5089206137",
-    "srs": "EPSG:3857",
-    "query_layers": "ls8_nbart_geomedian_annual",
-    "version": "1.1.1",
-    "x": "210",
-    "y": "109",
-    "time": "2015-01-01",
-    "width": "256",
-    "height": "256",
-    "info_format": "application/json",
-    "feature_count": "101"
-},
-{
-    "type": "FeatureCollection",
-    "features": [{
-        "properties": {
-            "lon": 117.87506103515621,
-            "lat": -21.194655303138624,
-            "time": "2015-01-01 00:00:00 UTC",
-            "data_available_for_dates": [
-                "2015-01-01"
-            ],
-            "data_links": [
-                "s3://dea-test-store/geomedian-australia/v2.1.0/L8/x_-15/y_-24/2015/01/01/ls8_gm_nbart_-15_-24_20150101.yaml"
-            ],
-            "bands": {
-                "blue": 632,
-                "green": 1098,
-                "red": 1706,
-                "nir": 2618,
-                "swir1": 3353,
-                "swir2": 2685
+    ({
+        "bbox": "12993071.8160274,-2504688.542848654,13149614.84995544,-2348145.5089206137",
+        "srs": "EPSG:3857",
+        "query_layers": "ls8_nbart_geomedian_annual",
+        "version": "1.1.1",
+        "x": "210",
+        "y": "109",
+        "time": "2015-01-01",
+        "width": "256",
+        "height": "256",
+        "info_format": "application/json",
+        "feature_count": "101"
+    },
+        {
+        "type": "FeatureCollection",
+        "features": [{
+            "properties": {
+                "lon": 117.87506103515621,
+                "lat": -21.194655303138624,
+                "time": "2015-01-01 00:00:00 UTC",
+                "data_available_for_dates": [
+                    "2015-01-01"
+                ],
+                "data_links": [
+                    "s3://dea-test-store/geomedian-australia/v2.1.0/L8/x_-15/y_-24/2015/01/01/ls8_gm_nbart_-15_-24_20150101.yaml"
+                ],
+                "bands": {
+                    "blue": 632,
+                    "green": 1098,
+                    "red": 1706,
+                    "nir": 2618,
+                    "swir1": 3353,
+                    "swir2": 2685
+                }
             }
-        }
-    }]
-})
+        }]
+    })
 ]
+
 
 @pytest.mark.parametrize("test_args, expect", test_data)
 def test_compose(cube, release_cube_dummy, mocker, test_args, expect):
@@ -53,7 +56,9 @@ def test_compose(cube, release_cube_dummy, mocker, test_args, expect):
     mocker.patch('datacube_wms.wms_layers.release_cube', release_cube_dummy)
 
     # stacker = DataStacker('s2b_nrt_granule', None, '2008-01-01')
-    app = flask.Flask("test", root_path="/Users/robbie/dev/datacube-wms/datacube_wms")
+    app = flask.Flask(
+        "test",
+        root_path="/Users/robbie/dev/datacube-wms/datacube_wms")
     with app.test_request_context('/?GetFeatureInfo'):
         result = json.loads(feature_info(test_args)[0])
 

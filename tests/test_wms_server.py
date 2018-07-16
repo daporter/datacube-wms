@@ -38,7 +38,8 @@ def get_xsd(name):
     return etree.XMLSchema(schema_doc)
 
 
-def check_wms_error(url, expected_error_message=None, expected_status_code=400):
+def check_wms_error(url, expected_error_message=None,
+                    expected_status_code=400):
     try:
         resp = request.urlopen(url)
 
@@ -67,16 +68,25 @@ def test_no_request(wms_server):
 
 def test_invalid_operation(wms_server):
     # Make invalid operation request to server:
-    check_wms_error(wms_server.url + "/?request=NoSuchOperation", "Unrecognised operation: NoSuchOperation", 400)
+    check_wms_error(
+        wms_server.url +
+        "/?request=NoSuchOperation",
+        "Unrecognised operation: NoSuchOperation",
+        400)
 
 
 def test_getcap_badsvc(wms_server):
     # Make bad service request to server:
-    check_wms_error(wms_server.url + "/?request=GetCapabilities&service=NotWMS", "Invalid service", 400)
+    check_wms_error(
+        wms_server.url +
+        "/?request=GetCapabilities&service=NotWMS",
+        "Invalid service",
+        400)
 
 
 def test_getcap(wms_server):
-    resp = request.urlopen(wms_server.url + "/?request=GetCapabilities&service=WMS")
+    resp = request.urlopen(wms_server.url +
+                           "/?request=GetCapabilities&service=WMS")
 
     # Confirm success
     assert resp.code == 200
@@ -142,7 +152,8 @@ def test_wms_getmap(wms_server):
                      size=(256, 256),
                      format="image/png",
                      transparent=True,
-                     time=test_layer.timepositions[len(test_layer.timepositions) // 2].strip(),
+                     time=test_layer.timepositions[len(
+                         test_layer.timepositions) // 2].strip(),
                      )
     assert img
     assert what("", h=img.read()) == "png"
@@ -154,7 +165,8 @@ def test_wms_getmap(wms_server):
                      size=(256, 256),
                      format="image/png",
                      transparent=True,
-                     time=test_layer.timepositions[len(test_layer.timepositions) // 2].strip(),
+                     time=test_layer.timepositions[len(
+                         test_layer.timepositions) // 2].strip(),
                      )
     assert img
     assert what("", h=img.read()) == "png"

@@ -7,7 +7,7 @@ import math
 
 try:
     from datacube_wms.wms_cfg_local import response_cfg
-except:
+except BaseException:
     from datacube_wms.wms_cfg import response_cfg
 from datacube_wms.wms_layers import get_layers, get_service_cfg
 
@@ -27,8 +27,11 @@ def _get_geobox(args, crs):
     height = int(args['height'])
     minx, miny, maxx, maxy = _get_geobox_xy(args, crs)
 
-    # miny-maxy for negative scale factor and maxy in the translation, includes inversion of Y axis.
-    affine = Affine.translation(minx, maxy) * Affine.scale((maxx - minx) / width, (miny - maxy) / height)
+    # miny-maxy for negative scale factor and maxy in the translation,
+    # includes inversion of Y axis.
+    affine = Affine.translation(minx,
+                                maxy) * Affine.scale((maxx - minx) / width,
+                                                     (miny - maxy) / height)
     return geometry.GeoBox(width, height, affine, crs)
 
 
@@ -57,13 +60,31 @@ def zoom_factor(args, crs):
     gp3 = p3.to_crs(geo_crs)
     gp4 = p4.to_crs(geo_crs)
 
-    minx = min(gp1.points[0][0], gp2.points[0][0], gp3.points[0][0], gp4.points[0][0])
-    maxx = max(gp1.points[0][0], gp2.points[0][0], gp3.points[0][0], gp4.points[0][0])
-    miny = min(gp1.points[0][1], gp2.points[0][1], gp3.points[0][1], gp4.points[0][1])
-    maxy = max(gp1.points[0][1], gp2.points[0][1], gp3.points[0][1], gp4.points[0][1])
+    minx = min(
+        gp1.points[0][0],
+        gp2.points[0][0],
+        gp3.points[0][0],
+        gp4.points[0][0])
+    maxx = max(
+        gp1.points[0][0],
+        gp2.points[0][0],
+        gp3.points[0][0],
+        gp4.points[0][0])
+    miny = min(
+        gp1.points[0][1],
+        gp2.points[0][1],
+        gp3.points[0][1],
+        gp4.points[0][1])
+    maxy = max(
+        gp1.points[0][1],
+        gp2.points[0][1],
+        gp3.points[0][1],
+        gp4.points[0][1])
 
     # Create geobox affine transformation (N.B. Don't need an actual Geobox)
-    affine = Affine.translation(minx, miny) * Affine.scale((maxx - minx) / width, (maxy - miny) / height)
+    affine = Affine.translation(minx,
+                                miny) * Affine.scale((maxx - minx) / width,
+                                                     (maxy - miny) / height)
 
     # Zoom factor is the reciprocal of the square root of the transform determinant
     # (The determinant is x scale factor multiplied by the y scale factor)
@@ -98,7 +119,8 @@ def get_product_from_arg(args, argname="layers"):
 def get_arg(args, argname, verbose_name, lower=False,
             errcode=None, permitted_values=[]):
     fmt = args.get(argname, "")
-    if lower: fmt = fmt.lower()
+    if lower:
+        fmt = fmt.lower()
     if not fmt:
         raise WMSException("No %s specified" % verbose_name,
                            errcode,
@@ -253,30 +275,39 @@ class GetFeatureInfoParameters(GetParameters):
 
 # Solar angle correction functions
 
+
 def declination_rad(dt):
     # Estimate solar declination from a datetime.  (value returned in radians).
-    # Formula taken from https://en.wikipedia.org/wiki/Position_of_the_Sun#Declination_of_the_Sun_as_seen_from_Earth
+    # Formula taken from
+    # https://en.wikipedia.org/wiki/Position_of_the_Sun#Declination_of_the_Sun_as_seen_from_Earth
     timedel = dt - datetime(dt.year, 1, 1, 0, 0, 0, tzinfo=utc)
-    day_count = timedel.days + timedel.seconds/(60.0*60.0*24.0)
-    return (-1.0 * math.radians(23.44) * math.cos(2*math.pi/365*(day_count + 10)))
+    day_count = timedel.days + timedel.seconds / (60.0 * 60.0 * 24.0)
+    return (-1.0 * math.radians(23.44) *
+            math.cos(2 * math.pi / 365 * (day_count + 10)))
+
 
 def cosine_of_solar_zenith(lat, lon, utc_dt):
     # Estimate cosine of solar zenith angle (angle between sun and local zenith) at requested latitude, longitude and datetime.
     # Formula taken from https://en.wikipedia.org/wiki/Solar_zenith_angle
-    utc_seconds_since_midnight = ((utc_dt.hour * 60) + utc_dt.minute) * 60 + utc_dt.second
-    utc_hour_deg_angle = (utc_seconds_since_midnight / (60*60*24) * 360.0) - 180.0
+    utc_seconds_since_midnight = (
+        (utc_dt.hour * 60) + utc_dt.minute) * 60 + utc_dt.second
+    utc_hour_deg_angle = (utc_seconds_since_midnight /
+                          (60 * 60 * 24) * 360.0) - 180.0
     local_hour_deg_angle = utc_hour_deg_angle + lon
     local_hour_angle_rad = math.radians(local_hour_deg_angle)
     latitude_rad = math.radians(lat)
     solar_decl_rad = declination_rad(utc_dt)
 
-    return math.sin(latitude_rad)*math.sin(solar_decl_rad) + math.cos(latitude_rad)*math.cos(solar_decl_rad)*math.cos(local_hour_angle_rad)
+    return math.sin(latitude_rad) * math.sin(solar_decl_rad) + math.cos(
+        latitude_rad) * math.cos(solar_decl_rad) * math.cos(local_hour_angle_rad)
+
 
 def solar_correct_data(data, dataset):
     # Apply solar angle correction to the data for a dataset.
-    # See for example http://gsp.humboldt.edu/olm_2015/Courses/GSP_216_Online/lesson4-1/radiometric.html
-    native_x = (dataset.bounds.right + dataset.bounds.left)/2.0
-    native_y = (dataset.bounds.top + dataset.bounds.bottom)/2.0
+    # See for example
+    # http://gsp.humboldt.edu/olm_2015/Courses/GSP_216_Online/lesson4-1/radiometric.html
+    native_x = (dataset.bounds.right + dataset.bounds.left) / 2.0
+    native_y = (dataset.bounds.top + dataset.bounds.bottom) / 2.0
     pt = geometry.point(native_x, native_y, dataset.crs)
     crs_geo = geometry.CRS("EPSG:4326")
     geo_pt = pt.to_crs(crs_geo)

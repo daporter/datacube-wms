@@ -15,7 +15,9 @@ def handle_wms(nocase_args):
     operation = nocase_args.get("request", "").upper()
     # WMS operation Map
     if not operation:
-        raise WMSException("No operation specified", locator="Request parameter")
+        raise WMSException(
+            "No operation specified",
+            locator="Request parameter")
     elif operation == "GETCAPABILITIES":
         return get_capabilities(nocase_args)
     elif operation == "GETMAP":
@@ -34,4 +36,3 @@ def get_capabilities(args):
     platforms = get_layers(refresh=True)
     return render_template("wms_capabilities.xml", service=get_service_cfg(), platforms=platforms), 200, resp_headers(
         {"Content-Type": "application/xml", "Cache-Control": "no-cache", "Cache-Control": "max-age=0"})
-

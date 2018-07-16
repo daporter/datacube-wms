@@ -5,11 +5,11 @@ response_cfg = {
 }
 
 service_cfg = {
-    ## Which web service(s) should be supported by this instance
+    # Which web service(s) should be supported by this instance
     "wcs": True,
     "wms": True,
 
-    ## Required config for WMS and/or WCS
+    # Required config for WMS and/or WCS
     # Service title - appears e.g. in Terria catalog
     "title": "WMS server for Australian Landsat Datacube",
     # Service URL.  Should a fully qualified URL
@@ -33,8 +33,9 @@ service_cfg = {
         },
     },
 
-    ## Required config for WCS
-    # Must be a geographic CRS in the published_CRSs list.  EPSG:4326 is recommended, but any geographic CRS should work.
+    # Required config for WCS
+    # Must be a geographic CRS in the published_CRSs list.  EPSG:4326 is
+    # recommended, but any geographic CRS should work.
     "default_geographic_CRS": "EPSG:4326",
 
     # Supported WCS formats
@@ -62,12 +63,13 @@ service_cfg = {
     # The native wcs format must be declared in wcs_formats above.
     "native_wcs_format": "GeoTIFF",
 
-    ## Optional config for instances supporting WMS
+    # Optional config for instances supporting WMS
     # Max tile height/width.  If not specified, default to 256x256
     "max_width": 512,
     "max_height": 512,
 
-    # Optional config for all services (WMS and/or WCS) - may be set to blank/empty, no defaults
+    # Optional config for all services (WMS and/or WCS) - may be set to
+    # blank/empty, no defaults
     "abstract": """Historic Landsat imagery for Australia.""",
     "keywords": [
         "landsat",
@@ -98,7 +100,8 @@ layer_cfg = [
     # Layer Config is a list of platform configs
     {
         # Name and title of the platform layer.
-        # Platform layers are not mappable. The name is for internal server use only.
+        # Platform layers are not mappable. The name is for internal server use
+        # only.
         "name": "LANDSAT_8",
         "title": "Landsat 8",
         "abstract": "Images from the Landsat 8 satellite",
@@ -140,10 +143,12 @@ layer_cfg = [
                 # Note that the ideal value may vary from product to product depending on the size of the dataset
                 # extents for the product.
                 # Defaults to zero, which is interpreted as no dataset limit.
-                # 6 seems to work with a min_zoom_factor of 500.0 for "old-style" Net-CDF albers tiled data.
+                # 6 seems to work with a min_zoom_factor of 500.0 for
+                # "old-style" Net-CDF albers tiled data.
                 "max_datasets_wms": 6,
                 # max_datasets_wcs is the WCS equivalent of max_datasets_wms.  The main requirement for setting this
-                # value is to avoid gateway timeouts on overly large WCS requests (and reduce server load).
+                # value is to avoid gateway timeouts on overly large WCS
+                # requests (and reduce server load).
                 "max_datasets_wcs": 16,
                 # The fill-colour of the indicative polygons when zoomed out.
                 # Triplets (rgb) or quadruplets (rgba) of integers 0-255.
@@ -153,7 +158,8 @@ layer_cfg = [
                 # 9 is good value for imagery of Australia.
                 "time_zone": 9,
                 # Extent mask function
-                # Determines what portions of dataset is potentially meaningful data.
+                # Determines what portions of dataset is potentially meaningful
+                # data.
                 "extent_mask_func": lambda data, band: (data[band] != data[band].attrs['nodata']),
                 # Flags listed here are ignored in GetFeatureInfo requests.
                 # (defaults to empty list)
@@ -192,7 +198,8 @@ layer_cfg = [
                             }
                         },
                         # The raw band value range to be compressed to an 8 bit range for the output image tiles.
-                        # Band values outside this range are clipped to 0 or 255 as appropriate.
+                        # Band values outside this range are clipped to 0 or
+                        # 255 as appropriate.
                         "scale_range": [0.0, 3000.0]
                     },
                     {
@@ -437,7 +444,8 @@ layer_cfg = [
                         "heat_mapped": True,
                         "index_function": lambda data: (data["nir"] - data["red"]) / (data["nir"] + data["red"]),
                         "needed_bands": ["red", "nir"],
-                        # Areas where the index_function returns outside the range are masked.
+                        # Areas where the index_function returns outside the
+                        # range are masked.
                         "range": [0.0, 1.0],
                     },
                     {
@@ -448,14 +456,15 @@ layer_cfg = [
                         "heat_mapped": True,
                         "index_function": lambda data: (data["nir"] - data["red"]) / (data["nir"] + data["red"]),
                         "needed_bands": ["red", "nir"],
-                        # Areas where the index_function returns outside the range are masked.
+                        # Areas where the index_function returns outside the
+                        # range are masked.
                         "range": [0.0, 1.0],
                         "pq_masks": [
                             {
                                 "flags": {
                                     "cloud_acca": "no_cloud",
                                     "cloud_fmask": "no_cloud",
-                                 },
+                                },
                             },
                         ],
                     },
@@ -498,7 +507,8 @@ layer_cfg = [
                         "range": [0.0, 1.0],
                     },
                     # Mask layers - examples of how to display raw pixel quality data.
-                    # This works by creatively mis-using the Heatmap style class.
+                    # This works by creatively mis-using the Heatmap style
+                    # class.
                     {
                         "name": "cloud_mask",
                         "title": "Cloud Mask",
@@ -514,7 +524,7 @@ layer_cfg = [
                         #
                         # i.e. Specifying like this shows pixels which are not clouds in either metric.
                         #      Specifying "cloud" and setting the "pq_mask_invert" to False would
-                        #      show pixels which are not clouds in both metrics.
+                        # show pixels which are not clouds in both metrics.
                         "pq_masks": [
                             {
                                 "invert": True,
@@ -593,7 +603,8 @@ layer_cfg = [
                             },
                         ],
                     },
-                    # Hybrid style - mixes a linear mapping and a heat mapped index
+                    # Hybrid style - mixes a linear mapping and a heat mapped
+                    # index
                     {
                         "name": "rgb_ndvi",
                         "title": "NDVI plus RGB",
@@ -603,7 +614,8 @@ layer_cfg = [
                         "heat_mapped": True,
                         "index_function": lambda data: (data["nir"] - data["red"]) / (data["nir"] + data["red"]),
                         "needed_bands": ["red", "nir"],
-                        # Areas where the index_function returns outside the range are masked.
+                        # Areas where the index_function returns outside the
+                        # range are masked.
                         "range": [0.0, 1.0],
                         "components": {
                             "red": {
@@ -627,7 +639,8 @@ layer_cfg = [
                         "heat_mapped": True,
                         "index_function": lambda data: (data["nir"] - data["red"]) / (data["nir"] + data["red"]),
                         "needed_bands": ["red", "nir"],
-                        # Areas where the index_function returns outside the range are masked.
+                        # Areas where the index_function returns outside the
+                        # range are masked.
                         "range": [0.0, 1.0],
                         "components": {
                             "red": {
@@ -691,10 +704,12 @@ layer_cfg = [
                 # Note that the ideal value may vary from product to product depending on the size of the dataset
                 # extents for the product.
                 # Defaults to zero, which is interpreted as no dataset limit.
-                # 6 seems to work with a min_zoom_factor of 500.0 for "old-style" Net-CDF albers tiled data.
+                # 6 seems to work with a min_zoom_factor of 500.0 for
+                # "old-style" Net-CDF albers tiled data.
                 "max_datasets_wms": 6,
                 # max_datasets_wcs is the WCS equivalent of max_datasets_wms.  The main requirement for setting this
-                # value is to avoid gateway timeouts on overly large WCS requests (and reduce server load).
+                # value is to avoid gateway timeouts on overly large WCS
+                # requests (and reduce server load).
                 "max_datasets_wcs": 16,
                 # The fill-colour of the indicative polygons when zoomed out.
                 # Triplets (rgb) or quadruplets (rgba) of integers 0-255.
@@ -704,7 +719,8 @@ layer_cfg = [
                 # 9 is good value for imagery of Australia.
                 "time_zone": 9,
                 # Extent mask function
-                # Determines what portions of dataset is potentially meaningful data.
+                # Determines what portions of dataset is potentially meaningful
+                # data.
                 "extent_mask_func": lambda data, band: (~data[band] & data[band].attrs['nodata']),
                 # When pq_manual_merge is set to true, individual PQ datasets
                 # are masked against the extent_mask_func individually before
