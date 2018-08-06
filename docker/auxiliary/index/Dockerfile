@@ -1,4 +1,4 @@
-FROM opendatacube/wms:latest
+FROM opendatacube/wms:0.2.8
 
 RUN pip3 install \
     ruamel.yaml \
@@ -8,8 +8,7 @@ WORKDIR indexing
 
 COPY assets/update_ranges.sh update_ranges.sh
 COPY assets/update_ranges_wrapper.sh update_ranges_wrapper.sh
-RUN wget https://raw.githubusercontent.com/opendatacube/datacube-ecs/master/indexer/ls_s2_cog.py
-
+RUN wget https://raw.githubusercontent.com/daporter/prepare_script_landsat/master/ls_public_bucket.py
 
 WORKDIR ..
 
