@@ -79,15 +79,13 @@ class WCS1GetCoverageRequest(object):
 
         # Argument: BBOX (technically not required if TIME supplied, but
         #       it's not clear to me what that would mean.)
+        # For WCS 1.0.0 all bboxes will be specified as minx, miny, maxx, maxy
         if "bbox" not in args:
             raise WCS1Exception("No BBOX parameter supplied",
                                 WCS1Exception.MISSING_PARAMETER_VALUE,
                                 locator="BBOX or TIME parameter")
         try:
-            if svc_cfg.published_CRSs[self.request_crsid]["vertical_coord_first"]:
-                self.miny, self.minx, self.maxy, self.maxx = map(float, args['bbox'].split(','))
-            else:
-                self.minx, self.miny, self.maxx, self.maxy = map(float, args['bbox'].split(','))
+            self.minx, self.miny, self.maxx, self.maxy = map(float, args['bbox'].split(','))
         except:
             raise WCS1Exception("Invalid BBOX parameter",
                                 WCS1Exception.INVALID_PARAMETER_VALUE,
@@ -373,7 +371,9 @@ def get_tiff(req, data):
                 dtype=dtype) as dst:
             for idx, band in enumerate(data.data_vars, start=1):
                 dst.write(data[band].values, idx)
-            dst.set_nodatavals(
+            # As of rasterio 1.0.2 the nodatavals property is not writable
+            # as suggested in the docs, use the deprecated function
+            dst._set_nodatavals(
                 [ req.product.nodata_dict[band] if band in req.product.nodata_dict else 0 for band in data.data_vars ]
             )
         return memfile.read()
