@@ -1,4 +1,4 @@
-FROM opendatacube/wms:0.2.8
+FROM opendatacube/wms:0.3.1
 
 RUN pip3 install \
     ruamel.yaml \
