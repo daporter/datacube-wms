@@ -74,4 +74,3 @@ done
 # python3 update_ranges.py ${product:+"--product"} ${product:+"$product"}
 echo '* Running: python3 update_ranges.py'
 python3 update_ranges.py 
-  
