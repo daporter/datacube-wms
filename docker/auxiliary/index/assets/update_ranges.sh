@@ -65,12 +65,10 @@ do
     else
         suffix_string="${suffixes[$i]}"
     fi
-    # python3 indexing/ls_public_bucket.py "$b" -p "${prefixes[$i]}" ${suffix_string:+"-s"} ${suffix_string:+"$suffix_string"} ${safety_arg:+"$safety_arg"} ${policy:+"--sources_policy"} ${policy:+"$policy"}
     python3 indexing/ls_public_bucket.py "$b" --prefix L8  --start 002/001 --stop 001/003
 done
 
 # update ranges in wms database
 
 # python3 update_ranges.py ${product:+"--product"} ${product:+"$product"}
-echo '* Running: python3 update_ranges.py'
 python3 update_ranges.py 
