@@ -65,7 +65,7 @@ do
     else
         suffix_string="${suffixes[$i]}"
     fi
-    python3 indexing/ls_public_bucket.py "$b" --prefix L8 --start 233/001 --stop 001/248
+    python3 indexing/ls_public_bucket.py "$b" --prefix L8 --start 134/76 --stop 123/90
 done
 
 # update ranges in wms database
