@@ -1,4 +1,4 @@
-#!/bin/bash
+ #!/bin/bash
 # Index new datasets and update ranges for WMS
 # should be run after archiving old datasets so that
 # ranges for WMS are correct
@@ -65,7 +65,7 @@ do
     else
         suffix_string="${suffixes[$i]}"
     fi
-    python3 indexing/ls_public_bucket.py "$b" --prefix L8  --start 233/248 --stop 001/001
+    python3 indexing/ls_public_bucket.py "$b" --prefix L8 --start 001/001 --stop 233/248
 done
 
 # update ranges in wms database
