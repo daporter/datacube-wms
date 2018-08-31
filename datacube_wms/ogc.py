@@ -3,6 +3,10 @@ import sys
 import traceback
 
 from flask import Flask, request, render_template
+from flask_request_id import RequestID
+import boto3
+import rasterio
+import os
 
 from datacube_wms.wms import handle_wms
 from datacube_wms.wcs import handle_wcs
@@ -10,10 +14,18 @@ from datacube_wms.ogc_exceptions import OGCException, WCS1Exception, WMSExceptio
 
 from datacube_wms.wms_layers import get_service_cfg
 
+import logging
 
+# pylint: disable=invalid-name, broad-except
+
+_LOG = logging.getLogger(__name__)
 
 app = Flask(__name__.split('.')[0])
+RequestID(app)
 
+if os.environ.get("prometheus_multiproc_dir", False):
+    from datacube_wms.metrics.prometheus import setup_prometheus
+    setup_prometheus(app)
 
 def lower_get_args():
     # Get parameters in WMS are case-insensitive, and intended to be single use.
@@ -30,9 +42,11 @@ def lower_get_args():
 def ogc_impl():
     nocase_args = lower_get_args()
     nocase_args['referer'] = request.headers.get('Referer', None)
-    nocase_args['origin']  = request.headers.get('Origin', None)
-    service = nocase_args.get("service","").upper()
+    nocase_args['origin'] = request.headers.get('Origin', None)
+    nocase_args['requestid'] = request.environ.get("FLASK_REQUEST_ID")
+    service = nocase_args.get("service", "").upper()
     svc_cfg = get_service_cfg()
+
     try:
         if service == "WMS":
             # WMS operation Map
@@ -60,6 +74,3 @@ def ogc_impl():
             eclass = WMSException
         ogc_e = eclass("Unexpected server error: %s" % str(e), http_response=500)
         return ogc_e.exception_response(traceback=traceback.extract_tb(tb))
-
-
-

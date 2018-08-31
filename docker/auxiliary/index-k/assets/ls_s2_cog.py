@@ -19,7 +19,7 @@ from datacube.utils import changes
 from ruamel.yaml import YAML
 
 from multiprocessing import Process, current_process, Queue, Manager, cpu_count
-from time import sleep
+from time import sleep, time
 
 GUARDIAN = "GUARDIAN_QUEUE_EMPTY"
 
@@ -72,10 +72,10 @@ def worker(config, bucket_name, prefix, suffix, func, unsafe, sources_policy, qu
                 break
             logging.info("Processing %s %s", key, current_process())
             obj = s3.Object(bucket_name, key).get(ResponseCacheControl='no-cache')
-            raw_string = obj['Body'].read().decode('utf8')
-            yaml = YAML(typ=safety, pure=True)
+            raw = obj['Body'].read()
+            yaml = YAML(typ=safety, pure=False)
             yaml.default_flow_style = False
-            data = yaml.load(raw_string)
+            data = yaml.load(raw)
             uri= get_s3_url(bucket_name, key)
             logging.info("calling %s", func)
             func(data, uri, index, sources_policy)
@@ -92,9 +92,10 @@ def iterate_datasets(bucket_name, config, prefix, suffix, func, unsafe, sources_
     bucket = s3.Bucket(bucket_name)
     logging.info("Bucket : %s prefix: %s ", bucket_name, str(prefix))
     safety = 'safe' if not unsafe else 'unsafe'
+    worker_count = cpu_count() * 2
 
     processess = []
-    for i in range(cpu_count()):
+    for i in range(worker_count):
         proc = Process(target=worker, args=(config, bucket_name, prefix, suffix, func, unsafe, sources_policy, queue,))
         processess.append(proc)
         proc.start()
@@ -103,7 +104,7 @@ def iterate_datasets(bucket_name, config, prefix, suffix, func, unsafe, sources_
         if (obj.key.endswith(suffix)):
             queue.put(obj.key)
 
-    for i in range(cpu_count()):
+    for i in range(worker_count):
         queue.put(GUARDIAN)
 
     for proc in processess:

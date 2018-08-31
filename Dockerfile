@@ -1,4 +1,4 @@
-FROM opendatacube/datacube-core:2018-07-26
+FROM opendatacube/datacube-core:1.6.1
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     jq \
     awscli \
     curl \
+    libev-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Terraform
@@ -21,10 +22,18 @@ RUN unzip terraform.zip && \
 RUN pip3 install \
     flask \
     scikit-image \
+    gevent \
+    eventlet \
     gunicorn \
+    gunicorn[gevent] \
+    gunicorn[eventlet] \
     boto3 \
     rasterio>=1.0.2 \
     ruamel.yaml \
+    prometheus-client \
+    flask-request-id-middleware \
+    pytest-localserver \
+    pytest-mock \
     && rm -rf $HOME/.cache/pip
 
 WORKDIR /code
@@ -41,7 +50,7 @@ RUN mkdir -p /code/setup
 WORKDIR /code/setup
 
 COPY docker/auxiliary/setup-k/assets/create-db.sh .
-COPY docker/auxiliary/setup-k/assets/create-db.tf .
+COPY docker/auxiliary/setup-k/assets/drop-db.sh .
 
 # Perform index install
 RUN mkdir -p /code/index/indexing
