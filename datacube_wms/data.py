@@ -4,6 +4,8 @@ from datetime import timedelta, datetime
 
 import numpy
 import xarray
+from dask import delayed
+from dask import array as da
 from affine import Affine
 import rasterio as rio
 from rasterio.io import MemoryFile
@@ -13,6 +15,7 @@ import re
 
 import datacube
 from datacube.utils import geometry
+from datacube.storage.masking import mask_to_dict
 
 from datacube_wms.cube_pool import get_cube, release_cube
 
@@ -30,10 +33,17 @@ from datacube.drivers import new_datasource
 import multiprocessing
 from multiprocessing import cpu_count
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, wait, as_completed
-
-from datacube_wms.rasterio_env import preauthenticate_s3, get_boto_session, get_rio_geotiff_georeference_source
+from datacube_wms.rasterio_env import preauthenticate_s3, \
+    get_gdal_opts, get_boto_credentials
+from collections import OrderedDict
+import traceback
 
 _LOG = logging.getLogger(__name__)
+MAX_WORKERS = cpu_count() * 2
+
+
+def _round(x, multiple):
+    return int(multiple * round(float(x) / multiple))
 
 # Calculates the approximate output shape and transform
 # for loading data from src into geobox
@@ -47,7 +57,7 @@ def _calculate_transform(src, geobox):
     # We allow rasterio to calculate resolution of geobox.
     if geobox.crs != dc_crs:
         bb = geobox.extent.boundingbox
-        geobox_transform, _, _ = rio.warp.calculate_default_transform(
+        geobox_transform, geobox_width, geobox_height = rio.warp.calculate_default_transform(
             str(geobox.crs),
             src.crs,
             geobox.width,
@@ -59,39 +69,89 @@ def _calculate_transform(src, geobox):
 
     # Calculate the output shape and corresponding transform
     # Always round up to ensure we do not miss data
-    scale_affine = (~src.transform * geobox_transform)
-    scale_a = math.ceil(abs(geobox_transform.a / src.transform.a))
-    scale_e = math.ceil(abs(geobox_transform.e / src.transform.e))
-    scale = min(scale_a, scale_e)
+    scale_a = math.ceil(geobox_transform.a / src.transform.a)
+    scale_e = math.ceil(geobox_transform.e / src.transform.e)
+    scale = min(abs(scale_a), abs(scale_e))
 
-    out_shape = (math.ceil(src.shape[0] / scale), math.ceil(src.shape[1] / scale))
+    c = src.transform.c
+    f = src.transform.f
+    window = None
+    if scale == 1:
+        src_w, src_s, src_e, src_n = src.bounds
+        dst_w, dst_s, dst_e, dst_n = rio.transform.array_bounds(geobox_height, geobox_width, geobox_transform)
+
+        int_w = src_w if src_w > dst_w else dst_w
+        int_e = src_e if src_e < dst_e else dst_e
+        int_s = src_s if src_s > dst_s else dst_s
+        int_n = src_n if src_n < dst_n else dst_n
+
+        window = rio.windows.from_bounds(int_w, int_s, int_e, int_n, transform=src.transform)
+        window1 = window.round_offsets(op='ceil').round_shape(op='ceil')
+        window2 = window.round_offsets(op='floor').round_shape(op='floor')
+        window = rio.windows.union([window1, window2])
+        # if window is out of bounds for source dataset need to make it in bounds
+        col_off = window.col_off if window.col_off >= 0 else 0
+        row_off  = window.row_off  if window.row_off  >= 0 else 0
+
+        col_off = window.col_off if window.col_off < src.shape[0] else src.shape[0] - 1
+        row_off = window.row_off if window.row_off < src.shape[1] else src.shape[1] - 1
+
+        width = window.width if (window.width + col_off) <= src.shape[0] else src.shape[0] - col_off
+        height = window.height if (window.height + row_off) <= src.shape[1] else src.shape[1] - row_off
+
+        window = rio.windows.Window(col_off, row_off, width, height)
+
+        _LOG.debug(src_w, src_s, src_e, src_n, dst_w, dst_s, dst_e, dst_n, str(window) + str(window1) + str(window2))
+        c = src.transform.c + (window.col_off * src.transform.a)
+        f = src.transform.f + (window.row_off * src.transform.e)
+        out_shape = src.shape
+    else:
+        out_shape = (math.ceil(src.shape[0] / abs(scale_a)), math.ceil(src.shape[1] / abs(scale_e)))
+
     out_shape_affine = Affine(
         (src.transform.a * scale),
         0,
-        src.transform.c,
+        c,
         0,
         (src.transform.e * scale),
-        src.transform.f)
+        f)
+    return (out_shape, out_shape_affine, window)
 
-    return (out_shape, out_shape_affine)
 
 def _calculate_and_load(filename, geobox, band_index):
+    _LOG.debug(filename)
     with rio.open(filename, sharing=False) as src:
-        out_shape, out_shape_affine = _calculate_transform(src, geobox)
-        data = src.read(out_shape=out_shape, indexes=band_index)
+        out_shape, out_shape_affine, window = _calculate_transform(src, geobox)
+        _LOG.debug(str(window))
+        if window is not None and window.col_off >= 0 and window.row_off >= 0 and window.width > 0 and window.height > 0:
+            data = src.read(indexes=band_index, window=window)
+        elif out_shape[0] > 0 and out_shape[1] > 0:
+            data = src.read(out_shape=out_shape, indexes=band_index)
+        else:
+            data = src.read(indexes=band_index)
+            out_shape_affine = src.transform
     return (out_shape_affine, src.crs, data)
 
 
-def _get_measurement(datasources, geobox, no_data, dtype):
-    #pylint: disable=broad-except
-    dest = numpy.full(geobox.shape, no_data, dtype=dtype)
-    sources = {(d.filename, d.get_bandnumber()) for d in datasources}
-    try:
-        for f, band_index in sources:
-            src_transform, src_crs, data = _calculate_and_load(f, geobox, band_index)
+def _make_destination(shape, no_data, dtype):
+    return numpy.full(shape, no_data, dtype)
+
+
+def read_from_source(source, geobox, no_data, dtype):
+    gdal_opts = get_gdal_opts()
+    creds = get_boto_credentials()
+    with rio.Env(**gdal_opts) as rio_env:
+        # set the internal rasterio environment credentials
+        if creds is not None:
+            rio_env._creds = creds
+
+        try:
+            buffer = numpy.full(geobox.shape, no_data, dtype=dtype)
+
+            src_transform, src_crs, data = _calculate_and_load(source.filename, geobox, source.get_bandnumber())
             rio.warp.reproject(
                 data,
-                dest,
+                buffer,
                 init_dest_nodata=False,
                 src_nodata=no_data,
                 src_transform=src_transform,
@@ -99,10 +159,35 @@ def _get_measurement(datasources, geobox, no_data, dtype):
                 dst_transform=geobox.transform,
                 dst_crs=str(geobox.crs),
                 resampling=rio.warp.Resampling.nearest)
-    except Exception as e:
-        _LOG.error("Error getting measurement! %s", e)
+        except Exception as e:
+            _LOG.error("Error getting measurement! %s %s", e, traceback.format_exc())
+            raise e
 
-    return dest
+    return buffer
+
+
+def _get_measurement(datasources, geobox, no_data, dtype, fuse_func=None):
+    """ Gets the measurement array of a band of data
+    """
+    # pylint: disable=broad-except, protected-access
+
+    def copyto_fuser(dest, src):
+        """
+        :type dest: numpy.ndarray
+        :type src: numpy.ndarray
+        """
+        where_nodata = (dest == no_data) if not numpy.isnan(no_data) else numpy.isnan(dest)
+        numpy.copyto(dest, src, where=where_nodata)
+        return dest
+
+    fuse_func = fuse_func or copyto_fuser
+    destination = _make_destination(geobox.shape, no_data, dtype)
+
+    for source in datasources:
+        buffer = delayed(read_from_source)(source, geobox, no_data, dtype)
+        destination = delayed(fuse_func)(destination, buffer)
+
+    return da.from_delayed(destination, geobox.shape, dtype)
 
 
 # Read data for given datasets and mesaurements per the output_geobox
@@ -111,39 +196,32 @@ def _get_measurement(datasources, geobox, no_data, dtype):
 # may have errors when reprojecting the data
 def read_data(datasets, measurements, geobox, use_overviews=False, **kwargs):
     #pylint: disable=too-many-locals, dict-keys-not-iterating
-    session = get_boto_session()
-    geotiff_src = get_rio_geotiff_georeference_source()
-    with rio.Env(session=session, GDAL_GEOREF_SOURCES=geotiff_src) as rio_env:
-        if use_overviews:
-            if not hasattr(datasets, "__iter__"):
-                datasets = [datasets]
-            all_bands = xarray.Dataset()
-            with ThreadPoolExecutor(max_workers=min(len(measurements), cpu_count() * 2)) as executor:
-                futures = dict()
-                for measurement in measurements:
-                    datasources = {new_datasource(d, measurement['name']) for d in datasets}
-                    future = executor.submit(_get_measurement,
-                                             datasources,
-                                             geobox,
-                                             measurement['nodata'],
-                                             measurement['dtype']
-                                            )
-                    futures[future] = measurement
+    if not hasattr(datasets, "__iter__"):
+        datasets = [datasets]
+    holder = numpy.empty(shape=tuple(), dtype=object)
+    holder[()] = datasets
+    sources = xarray.DataArray(holder)
+    if use_overviews:
+        all_bands = xarray.Dataset()
+        for name, coord in geobox.coordinates.items():
+            all_bands[name] = (name, coord.values, {'units': coord.units})
 
-                for f in as_completed(futures.keys()):
-                    measurement = futures[f]
-                    final = xarray.DataArray(f.result(),
-                                             dims=('x', 'y'),
-                                             attrs=measurement.dataarray_attrs()
-                                            )
-                    all_bands[measurement['name']] = final
-            all_bands.attrs['crs'] = geobox.crs
-            return all_bands
-        else:
-            holder = numpy.empty(shape=tuple(), dtype=object)
-            holder[()] = [datasets]
-            sources = xarray.DataArray(holder)
-            return datacube.Datacube.load_data(sources, geobox, measurements, **kwargs)
+        for measurement in measurements:
+            datasources = {new_datasource(d, measurement['name']) for d in datasets}
+            data = _get_measurement(datasources,
+                                    geobox,
+                                    measurement['nodata'],
+                                    measurement['dtype']
+                                    )
+            coords = OrderedDict((dim, sources.coords[dim]) for dim in sources.dims)
+            dims = tuple(coords.keys()) + tuple(geobox.dimensions)
+            all_bands[measurement['name']] = (dims, data, measurement.dataarray_attrs())
+
+        all_bands.attrs['crs'] = geobox.crs
+        all_bands.load()
+        return all_bands.load()
+    else:
+        return datacube.Datacube.load_data(sources, geobox, measurements, **kwargs)
 
 
 class DataStacker():
@@ -200,8 +278,6 @@ class DataStacker():
                 msg += str(ds.id) + ":" + str(ds.center_time) + str(ds.center_time.utcoffset()) + ", "
             raise Exception("Yes we have inconsistent offset state: " + msg)
 
-        # datasets.sort(key=lambda d: d.center_time)
-
         if point:
             # Interested in a single point (i.e. GetFeatureInfo)
             def filt_func(dataset):
@@ -220,6 +296,7 @@ class DataStacker():
                 # Remove un-needed or redundant datasets
                 return self.filter_datasets_by_extent(datasets)
 
+
     def filter_datasets_by_extent(self, datasets):
         #pylint: disable=too-many-branches, dict-keys-not-iterating
         date_index = {}
@@ -233,11 +310,9 @@ class DataStacker():
         if not date_index:
             # No datasets intersect geobox
             return []
-
         date_extents = {}
         for dt, dt_dss in date_index.items():
             # Loop over dates in the date index
-
             # Build up a net extent of all datasets for this date
             geom = None
             for ds in dt_dss:
@@ -249,12 +324,9 @@ class DataStacker():
                 # This date fully overs the tile bounding box, just return it.
                 return dt_dss
             date_extents[dt] = geom
-
         dates = date_extents.keys()
-
         # Sort by size of geometry
         biggest_geom_first = sorted(dates, key=lambda x: [date_extents[x].area, x], reverse=True)
-
         accum_geom = None
         filtered = []
         for d in biggest_geom_first:
@@ -266,6 +338,7 @@ class DataStacker():
                 accum_geom = accum_geom.union(geom)
                 filtered.extend(date_index[d])
         return filtered
+
 
     def data(self, datasets, mask=False, manual_merge=False, skip_corrections=False, use_overviews=False, **kwargs):
         #pylint: disable=too-many-locals, consider-using-enumerate
@@ -424,11 +497,10 @@ def _write_png(data, pq_data, style, extent_mask):
         with memfile.open(driver='PNG',
                           width=width,
                           height=height,
-                          count=3,
+                          count=len(img_data.data_vars),
                           transform=Affine.identity(),
                           nodata=0,
                           dtype='uint8') as thing:
-            scaled = None
             for idx, band in enumerate(img_data.data_vars, start=1):
                 thing.write_band(idx, img_data[band].values)
 
@@ -454,19 +526,17 @@ def _write_polygon(geobox, polygon, zoom_fill):
         data = numpy.full([geobox.height, geobox.width], fill_value=1, dtype="uint8")
     else:
         data = numpy.zeros([geobox.height, geobox.width], dtype="uint8")
-        if not geobox_ext.disjoint(polygon):
-            intersection = geobox_ext.intersection(polygon)
-            if intersection.type == 'Polygon':
-                coordinates_list = [intersection.json["coordinates"]]
-            elif intersection.type == 'MultiPolygon':
-                coordinates_list = intersection.json["coordinates"]
-            else:
-                raise Exception("Unexpected extent/geobox intersection geometry type: %s" % intersection.type)
-            for polygon_coords in coordinates_list:
-                pixel_coords = [~geobox.transform * coords for coords in polygon_coords[0]]
-                rs, cs = skimg_polygon([int_trim(c[1], 0, geobox.height - 1) for c in pixel_coords],
-                                       [int_trim(c[0], 0, geobox.width - 1) for c in pixel_coords])
-                data[rs, cs] = 1
+        if polygon.type == 'Polygon':
+            coordinates_list = [polygon.json["coordinates"]]
+        elif polygon.type == 'MultiPolygon':
+            coordinates_list = polygon.json["coordinates"]
+        else:
+            raise Exception("Unexpected extent/geobox polygon geometry type: %s" % polygon.type)
+        for polygon_coords in coordinates_list:
+            pixel_coords = [ ~geobox.transform * coords for coords in polygon_coords[0]]
+            rs, cs = skimg_polygon([c[1] for c in pixel_coords], [c[0] for c in pixel_coords], shape=[geobox.width, geobox.height])
+            data[rs,cs] = 1
+
     with MemoryFile() as memfile:
         with memfile.open(driver='PNG',
                           width=geobox.width,
@@ -578,11 +648,15 @@ def feature_info(args):
                     # Collect raw band values for pixel
                     feature_json["bands"] = {}
                     for band in stacker.needed_bands():
-                        band_val = pixel_ds[band].item()
-                        if band_val == -999:
+                        ret_val = band_val = pixel_ds[band].item()
+                        if band_val == pixel_ds[band].nodata:
                             feature_json["bands"][band] = "n/a"
                         else:
-                            feature_json["bands"][band] = pixel_ds[band].item()
+                            if hasattr(pixel_ds[band], 'flags_definition'):
+                                flag_def = pixel_ds[band].flags_definition
+                                flag_dict = mask_to_dict(flag_def, band_val)
+                                ret_val = [flag_def[k]['description'] for k in filter(flag_dict.get, flag_dict)]
+                            feature_json["bands"][band] = ret_val
                 if params.product.band_drill:
                     if pixel_ds is None:
                         data = stacker.data([d], skip_corrections=True)
@@ -590,7 +664,7 @@ def feature_info(args):
                     drill_section = {}
                     for band in params.product.band_drill:
                         band_val = pixel_ds[band].item()
-                        if band_val == -999:
+                        if band_val == pixel_ds[band].nodata:
                             drill_section[band] = "n/a"
                         else:
                             drill_section[band] = pixel_ds[band].item()

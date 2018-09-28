@@ -145,7 +145,8 @@ def get_arg(args, argname, verbose_name, lower=False,
 def get_time(args, product, raw_product):
     # Time parameter
     times = args.get('time', '').split('/')
-    if len(times) > 1:
+    # If all times are equal we can proceed
+    if len(set(times)) > 1:
         raise WMSException(
             "Selecting multiple time dimension values not supported",
             WMSException.INVALID_DIMENSION_VALUE,
@@ -224,6 +225,24 @@ class GetParameters():
 
     def get_raw_product(self, args):
         return args["layers"].split(",")[0]
+
+class GetLegendGraphicParameters(GetParameters):
+    def __init__(self, args):
+        self.product = get_product_from_arg(args, 'layer')
+
+        # Validate Format parameter
+        self.format = get_arg(args, "format", "image format",
+                              errcode=WMSException.INVALID_FORMAT,
+                              lower=True,
+                              permitted_values=["image/png"])
+        # Styles
+        self.styles = args.get("styles", "").split(",")
+        if len(self.styles) != 1:
+            raise WMSException("Multi-layer GetMap requests not supported")
+        self.style_name = style_r = self.styles[0]
+        if not style_r:
+            style_r = self.product.default_style
+        self.style = self.product.style_index.get(style_r)
 
 
 class GetMapParameters(GetParameters):
@@ -314,3 +333,4 @@ def solar_correct_data(data, dataset):
     csz = cosine_of_solar_zenith(data_lat, data_lon, data_time)
 
     return data / csz
+

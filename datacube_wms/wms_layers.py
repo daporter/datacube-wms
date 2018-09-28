@@ -45,6 +45,7 @@ class ProductLayerDef():
         self.product_variant = product_cfg["variant"]
         self.product = dc.index.products.get_by_name(self.product_name)
         self.definition = self.product.definition
+        self.abstract = product_cfg["abstract"] if "abstract" in product_cfg else self.definition['description']
         self.title = "%s %s %s (%s)" % (platform_def.title,
                                         self.product_variant,
                                         self.product_type,
@@ -76,6 +77,7 @@ class ProductLayerDef():
         else:
             self.pq_product = None
         self.time_zone = product_cfg.get("time_zone", 9)
+        self.legend = product_cfg.get("legend", None)
         self.styles = product_cfg["styles"]
         self.default_style = product_cfg["default_style"]
         self.style_index = {s["name"]: StyleDef(self, s) for s in self.styles}
@@ -201,6 +203,7 @@ class ServiceCfg():
             self.url = srv_cfg["url"]
             if not self.url.startswith("http"):
                 raise Exception("URL in service_cfg does not start with http or https.")
+            self.human_url = srv_cfg.get("human_url", self.url)
             self.published_CRSs = {}
             for crs_str, crsdef in srv_cfg["published_CRSs"].items():
                 self.published_CRSs[crs_str] = {
@@ -259,8 +262,6 @@ class ServiceCfg():
             self.fees = srv_cfg.get("fees", "")
             self.access_constraints = srv_cfg.get("access_constraints", "")
             self.preauthenticate_s3 = srv_cfg.get("preauthenticate_s3", False)
-            self.geotiff_georeference_source = srv_cfg.get("geotiff_georeference_source",
-                                                           "PAM,INTERNAL,TABFILE,WORLDFILE,NONE")
 
 
     def __getitem__(self, name):

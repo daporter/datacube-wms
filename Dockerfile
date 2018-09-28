@@ -3,6 +3,9 @@ FROM opendatacube/datacube-core:1.6.1
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
+    python3-matplotlib \
+    python3-pil\
+    libpng-dev \
     wget \
     unzip \
     git \
@@ -20,6 +23,7 @@ RUN unzip terraform.zip && \
     terraform -v 
 
 RUN pip3 install \
+    colour \
     flask \
     scikit-image \
     gevent \
@@ -28,7 +32,7 @@ RUN pip3 install \
     gunicorn[gevent] \
     gunicorn[eventlet] \
     boto3 \
-    rasterio>=1.0.2 \
+    rasterio==1.0.6 \
     ruamel.yaml \
     prometheus-client \
     flask-request-id-middleware \
@@ -58,18 +62,20 @@ WORKDIR /code/index/indexing
 
 COPY docker/auxiliary/index-k/assets/update_ranges.sh .
 COPY docker/auxiliary/index-k/assets/update_ranges_wrapper.sh .
-COPY docker/auxiliary/index-k/assets/ls_s2_cog.py .
+ADD https://raw.githubusercontent.com/opendatacube/datacube-dataset-config/master/scripts/index_from_s3_bucket.py ls_s2_cog.py
 
 WORKDIR /code/index
 COPY docker/auxiliary/index-k/assets/create-index.sh .
 
 # Archive install
-RUN mkdir -p /code/archive
+RUN mkdir -p /code/archive/archiving
 WORKDIR /code/archive
 
 COPY docker/auxiliary/archive/assets/archive-wrapper.sh .
+
+WORKDIR /code/archive/archiving
 COPY docker/auxiliary/archive/assets/archive.sh .
-COPY docker/auxiliary/index-k/assets/ls_s2_cog.py .
+ADD https://raw.githubusercontent.com/opendatacube/datacube-dataset-config/master/scripts/index_from_s3_bucket.py ls_s2_cog.py
 
 WORKDIR /code
 
