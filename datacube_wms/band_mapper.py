@@ -19,6 +19,8 @@ import matplotlib.patches as mpatches
 import io
 from textwrap import fill
 
+from math import isclose
+
 _LOG = logging.getLogger(__name__)
 
 class StyleMask():
@@ -37,7 +39,7 @@ class StyleDefBase():
         for band in self.product.always_fetch_bands:
             self.needed_bands.add(band)
 
-        self.legend_cfg = style_cfg.get("legend", None)
+        self.legend_cfg = style_cfg.get("legend", dict())
 
     def apply_masks(self, data, pq_data):
         if pq_data is not None:
@@ -145,7 +147,9 @@ class RGBMappedStyleDef(StyleDefBase):
                 label = fill(value["title"] + " - " + value["abstract"], 30)
                 patch = mpatches.Patch(color=rgb.hex, label=label)
                 patches.append(patch)
-        figure = plt.figure(figsize=(3, 1.25))
+        cfg = self.legend_cfg
+        figure = plt.figure(figsize=(cfg.get("width", 3),
+                                     cfg.get("height", 1.25)))
         plt.axis('off')
         legend = plt.legend(handles=patches, loc='center', frameon=False)
         plt.savefig(bytesio, format='png')
@@ -372,7 +376,8 @@ class RgbaColorRampDef(StyleDefBase):
             
             return (values, red, green, blue, alpha)
 
-        values, r, g, b, a = crack_ramp(style_cfg["color_ramp"])
+        self.color_ramp = style_cfg["color_ramp"]
+        values, r, g, b, a = crack_ramp(self.color_ramp)
         self.values = values
         self.components = {
             "red": r,
@@ -422,9 +427,10 @@ class RgbaColorRampDef(StyleDefBase):
             stop = values[-1]
             ticks = dict()
             cdict = dict()
-            tick_mod = cfg.get("major_ticks", 1) if cfg is not None else 1
-            tick_scale = cfg.get("scale_by", 1) if cfg is not None else 1
-            places = cfg.get("radix_point", 1) if cfg is not None else 1
+            tick_mod = cfg.get("major_ticks", 1)
+            tick_scale = cfg.get("scale_by", 1)
+            places = cfg.get("radix_point", 1)
+            ramp = cfg.get("ramp")
 
             bands = defaultdict(list)
             for index, v in enumerate(values):
@@ -434,33 +440,53 @@ class RgbaColorRampDef(StyleDefBase):
                     v = 0
                 # ensure value is normalized
                 normalized = v / stop
-                if ((v * tick_scale) % (tick_mod * tick_scale) == 0.0):
+                # Apply label is value should be displayed
+                if (v % tick_mod) or isclose((v * tick_scale) % (tick_mod * tick_scale), 0.0, abs_tol=1e-8):
                     label = v * tick_scale
                     label = round(label, places) if places > 0 else int(label)
+                    # Apply any custom labelling
+                    custom_legend_cfg = next((item for item in ramp if item['value'] == v), dict()).get("legend", None)
+                    if custom_legend_cfg is not None:
+                        clc = custom_legend_cfg
+                        prefix = clc.get("prefix", "")
+                        l = clc.get("label", label)
+                        suffix = clc.get("suffix", "")
+                        label = f"{prefix}{l}{suffix}"
                     ticks[normalized] = label
                 for band, intensity in components.items():
                     bands[band].append((normalized, intensity[index], intensity[index]))
 
             for band, blist in bands.items():
                 cdict[band] = tuple(blist)
+
+            # if we only have ramp configuration default to
+            # no custom ticks
+            if "ramp" in cfg and len(cfg) == 1:
+                ticks = None
             return (cdict, ticks)
 
-        cdict, ticks = create_cdict_ticks(self.components, self.values, self.legend_cfg)
+        combined_cfg = self.legend_cfg
+        combined_cfg["ramp"] = self.color_ramp
+        cdict, ticks = create_cdict_ticks(self.components, self.values, combined_cfg)
 
-        fig = plt.figure(figsize=(4,1.25))
-        ax = fig.add_axes([0.05, 0.5, 0.9, 0.15])
+        fig = plt.figure(figsize=(combined_cfg.get("width", 4),
+                                  combined_cfg.get("height", 1.25)))
+        ax_pos = combined_cfg.get("axes_position", [0.05, 0.5, 0.9, 0.15])
+        ax = fig.add_axes(ax_pos)
         custom_map = LinearSegmentedColormap(self.product.name, cdict)
         color_bar = mpl.colorbar.ColorbarBase(
             ax,
             cmap=custom_map,
-            orientation="horizontal",
-            ticks=list(ticks.keys()))
-        color_bar.set_ticklabels([str(l) for l in ticks.values()])
+            orientation="horizontal")
+
+        if ticks is not None:
+            color_bar.set_ticks(list(ticks.keys()))
+            color_bar.set_ticklabels([str(l) for l in ticks.values()])
 
         title = self.title
-        if self.legend_cfg is not None:
-            unit = self.legend_cfg.get("units", "unitless")
-            title = title + "(" + unit + ")"
+        unit = self.legend_cfg.get("units", "unitless")
+        title = title + "(" + unit + ")"
+
         color_bar.set_label(title)
 
         plt.savefig(bytesio, format='png')
